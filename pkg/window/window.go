@@ -104,13 +104,6 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath string, imgHash string, i
 		}
 	}
 
-	var flex1, flex2 float32
-	if imgDims.Width >= imgDims.Height {
-		flex1, flex2 = 1, 1
-	} else {
-		flex1, flex2 = 3, 1
-	}
-
 	// Listen for events in the window.
 	for {
 		select {
@@ -142,8 +135,9 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath string, imgHash string, i
 					Spacing: layout.SpaceEnd,
 				}.Layout(gtx,
 					// Image
-					layout.Flexed(flex1, func(gtx C) D {
+					layout.Rigid(func(gtx C) D {
 						return layout.Center.Layout(gtx, func(gtx C) D {
+							gtx.Constraints.Max.Y -= 200
 							imgWidget := widget.Image{
 								Fit:      widget.Contain,
 								Position: layout.Center,
@@ -164,7 +158,7 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath string, imgHash string, i
 						)
 					}),
 					// Translation panel
-					layout.Flexed(flex2,
+					layout.Rigid(
 						func(gtx C) D {
 							var split Split
 
