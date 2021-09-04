@@ -84,7 +84,7 @@ func (s Split) Layout(gtx C, left, right layout.Widget) D {
 	{
 		stack := op.Save(gtx.Ops)
 
-		barRect := image.Rect(leftSize, 0, rightOffset, gtx.Constraints.Max.X)
+		barRect := image.Rect(leftSize, 0, rightOffset, gtx.Constraints.Max.Y)
 		clip.Rect{Max: barRect.Max, Min: barRect.Min}.Add(gtx.Ops)
 		paint.ColorOp{Color: Gray}.Add(gtx.Ops)
 		paint.PaintOp{}.Add(gtx.Ops)
