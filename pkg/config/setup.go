@@ -13,6 +13,7 @@ func Setup(configPath string, cfg *File) {
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Warning("Config file not found")
+			return
 		} else {
 			log.Fatalf("Config file was found but another error was produced: %v", err)
 		}

@@ -43,6 +43,9 @@ func main() {
 	config.Setup(applicationPath, &cfg)
 
 	// Open/download selected image and get its info.
+	if len(flag.Args()) == 0 {
+		log.Fatal("No path or URL given.")
+	}
 	imageFile := flag.Args()[0]
 	log.Infof("Selected Image: %v", imageFile)
 
