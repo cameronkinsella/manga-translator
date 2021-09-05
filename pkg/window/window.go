@@ -42,6 +42,9 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath string, imgHash string, i
 	// Button widgets which will be placed over the text blocks.
 	var blockButtons []widget.Clickable
 
+	// Button widgets which will be placed over the translation widget for copying text to clipboard.
+	var originalBtn, translatedBtn widget.Clickable
+
 	// Create material theme with Noto font to support a wide range of unicode.
 	fonts := gofont.Collection()
 	fonts = appendOTC(fonts, text.Font{Typeface: "Noto"}, notosans.OTC())
@@ -118,10 +121,16 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath string, imgHash string, i
 				for i, b := range blocks {
 					if blockButtons[i].Clicked() {
 						log.Debugf("Clicked Block %d", i)
-						w.WriteClipboard(b.Text)
 						selectedO = b.Text
 						selectedT = b.Translated
 					}
+				}
+
+				// Write to clipboard if either of the text sections are clicked.
+				if originalBtn.Clicked() {
+					w.WriteClipboard(selectedO)
+				} else if translatedBtn.Clicked() {
+					w.WriteClipboard(selectedT)
 				}
 
 				// Background
@@ -163,9 +172,9 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath string, imgHash string, i
 							var split Split
 
 							return split.Layout(gtx, func(gtx C) D {
-								return translatorWidget(gtx, th, selectedO, "Original Text")
+								return translatorWidget(gtx, th, &originalBtn, selectedO, "Original Text")
 							}, func(gtx C) D {
-								return translatorWidget(gtx, th, selectedT, "Translated Text")
+								return translatorWidget(gtx, th, &translatedBtn, selectedT, "Translated Text")
 							})
 						},
 					),

@@ -8,6 +8,7 @@ import (
 	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"image"
 )
@@ -18,7 +19,7 @@ type (
 )
 
 // translatorWidget is the widget used for the boxes which contain the original and translated text.
-func translatorWidget(gtx C, th *material.Theme, txt, title string) D {
+func translatorWidget(gtx C, th *material.Theme, btn *widget.Clickable, txt, title string) D {
 	return layout.Flex{
 		Axis:      layout.Vertical,
 		Spacing:   50,
@@ -38,17 +39,22 @@ func translatorWidget(gtx C, th *material.Theme, txt, title string) D {
 		layout.Rigid(divider),
 		// Body
 		layout.Rigid(func(gtx C) D {
-			return layout.Inset{
-				Top:   unit.Dp(20),
-				Left:  unit.Dp(10),
-				Right: unit.Dp(10)}.Layout(gtx, func(gtx C) D {
+			return material.Clickable(gtx, btn, func(gtx C) D {
+				gtx.Constraints.Min.X = gtx.Constraints.Max.X
+				w := layout.Inset{
+					Top:   unit.Dp(20),
+					Left:  unit.Dp(10),
+					Right: unit.Dp(10)}.Layout(gtx, func(gtx C) D {
 
-				l := material.Body1(th, txt)
-				l.Font = text.Font{Typeface: "Noto"}
-				l.Alignment = text.Middle
-				l.Color = LightGray
+					l := material.Body1(th, txt)
+					l.Font = text.Font{Typeface: "Noto"}
+					l.Alignment = text.Middle
+					l.Color = LightGray
 
-				return l.Layout(gtx)
+					return l.Layout(gtx)
+				})
+				w.Size = gtx.Constraints.Max
+				return w
 			})
 		}),
 	)
