@@ -7,6 +7,14 @@ application was designed to be used as a desktop application only.
 
 > Note: This application should work on Windows, Linux, and macOS systems, but has only been tested on Windows.
 
+<p align="center">
+   <img src="https://github.com/cameronkinsella/manga-translator/blob/master/images/example-translation.gif?raw=true"  alt="Example Translation"/>
+   <br/>
+   <cite>Image source: うずまき 1巻</cite>
+</p>
+
+---
+
 ## Installation
 
 ### Option 1: Download the binary directly (Windows only)
