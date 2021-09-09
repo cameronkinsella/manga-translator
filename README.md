@@ -25,7 +25,10 @@ to download the latest version.
 ### Option 2: `go get`
 
 ```sh
-go get -u github.com/cameronkinsella/manga-translator/cmd/manga-translator && \
+# Manga Translator application
+go get -u github.com/cameronkinsella/manga-translator/cmd/manga-translator
+
+# Config setup application
 go get -u github.com/cameronkinsella/manga-translator/cmd/config-setup
 ```
 
