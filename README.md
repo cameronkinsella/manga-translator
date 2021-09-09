@@ -2,7 +2,7 @@
 
 An easy-to-use application for translating text in images from Japanese to English.
 
-GUI was created using [Gio](https://gioui.org/). Gio supports a variety of platforms, including browsers, but this
+The GUI was created using [Gio](https://gioui.org/). Gio supports a variety of platforms, including browsers, but this
 application was designed to be used as a desktop application only.
 
 > Note: This application should work on Windows, Linux, and macOS systems, but has only been tested on Windows.
@@ -26,14 +26,14 @@ go get -u github.com/cameronkinsella/manga-translator/cmd/config-setup
 
 ## Prerequisites
 
-The following APIs are required:
+**Mandatory:**
 
-- Google Cloud Vision API
+- Google Cloud Vision API service account key
 
-At least one of the following APIs are required:
+**At least one of the following are required:**
 
-- Google Cloud Translation API
-- DeepL API (Free or Pro)
+- Google Cloud Translation API key
+- DeepL API key (Free or Pro)
 
 ---
 
@@ -64,12 +64,16 @@ This API key will be needed to configure manga-translator (if you want to use th
 
 ### First Time (configuration)
 
-Run the `config-setup` application and follow the interactive prompts.
+Do one of the following:
 
-### CLI
+1. Run the `config-setup` application and follow the interactive prompts
+2. Create the `config.yml` file manually
+   by [following the schema](https://github.com/cameronkinsella/manga-translator/blob/master/pkg/config/README.md)
 
-```sh
-Usage: manga-translator.exe [OPTIONS] IMAGE_LOCATION:
+### Command
+
+```
+Usage: manga-translator.exe [OPTIONS] IMAGE_LOCATION
 
 Options:
   -url   Use an image from a URL instead of a local file.
