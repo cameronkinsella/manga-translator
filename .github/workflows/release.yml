@@ -1,0 +1,27 @@
+name: Release Go Binaries
+
+on:
+  release:
+    types: [ created ]
+  workflow_dispatch:
+
+
+jobs:
+  releases-matrix:
+    name: Release Matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [ windows ]
+        goarch: [ "386", amd64 ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: wangyoucao577/go-release-action@v1.20
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          project_path: ./build/
+          build_command: make ${{ matrix.goos }}-${{ matrix.goarch }} && mv ./${{ matrix.goos }}-${{ matrix.goarch }}/* ${BUILD_ARTIFACTS_FOLDER}/
+          extra_files: ./scripts/${{ matrix.goos }}/*
