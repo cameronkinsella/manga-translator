@@ -60,7 +60,7 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath string, imgHash string, i
 
 	// If the config is blank/doesn't exist, skip all steps and
 	if cfg == blankCfg {
-		selectedO = `Your config is either blank or doesn't exist, run the "config-setup" application to create one.`
+		selectedO = `Your config is either blank or doesn't exist, run the "manga-translator-setup" application to create one.`
 	} else {
 		// See if the block info and translations are already cached.
 		blocks = cache.Check(imgHash, cfg.Translation.SelectedService)
@@ -89,7 +89,7 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath string, imgHash string, i
 					allTranslated = translate.DeepLTranslate(allOriginal, cfg)
 				} else {
 					allTranslated = translate.TranslationError(
-						`Your config does not have a valid selected service, run the "config-setup" application again.`,
+						`Your config does not have a valid selected service, run the "manga-translator-setup" application again.`,
 						allOriginal,
 					)
 				}

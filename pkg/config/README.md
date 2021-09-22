@@ -1,6 +1,6 @@
 # Config Schema
 
-If you wish to create `config.yml` manually, follow this schema:
+If you wish to create `mtl-config.yml` manually, follow this schema:
 
 ```yaml
 cloudVision:

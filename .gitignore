@@ -18,10 +18,10 @@
 .idea/
 
 # Config (contains sensitive data)
-config.yml
+mtl-config.yml
 
 # Cache
-cache.bin
+mtl-cache.bin
 
 # Logs
 *.log

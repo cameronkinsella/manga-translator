@@ -28,7 +28,7 @@ type TextBlock struct {
 	Color      color.NRGBA
 }
 
-var errInvalidVisionPath = errors.New(`path given for Vision API service account credentials is invalid. Please run the "config-setup" application to fix it`)
+var errInvalidVisionPath = errors.New(`path given for Vision API service account credentials is invalid. Please run the "manga-translator-setup" application to fix it`)
 
 // GetAnnotation gets text (TextAnnotation) from the Vision API for an image at the given file path.
 func GetAnnotation(file string, url bool) (*pb.TextAnnotation, error) {

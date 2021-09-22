@@ -24,7 +24,7 @@ func read() []Data {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cachePath = filepath.Join(cachePath, "cache.bin")
+	cachePath = filepath.Join(cachePath, "mtl-cache.bin")
 	cacheFile, err := os.Open(cachePath)
 	if errors.Is(err, os.ErrNotExist) {
 		// handle the case where the file doesn't exist
@@ -76,7 +76,7 @@ func Add(h string, service string, blocks []detect.TextBlock) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cachePath = filepath.Join(cachePath, "cache.bin")
+	cachePath = filepath.Join(cachePath, "mtl-cache.bin")
 	cacheFile, err := os.OpenFile(cachePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		log.Fatal(err)

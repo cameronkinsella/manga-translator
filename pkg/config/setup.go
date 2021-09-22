@@ -10,6 +10,8 @@ import (
 func Setup(configPath string, cfg *File) {
 	log.Debugf("Config path: %v", configPath)
 	viper.AddConfigPath(configPath)
+	viper.SetConfigName("mtl-config")
+	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Warning("Config file not found")

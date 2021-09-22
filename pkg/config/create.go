@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// File is the config.yml structure.
+// File is the mtl-config.yml structure.
 type File struct {
 	CloudVision struct {
 		CredentialsPath string `yaml:"credentialsPath"`
@@ -94,7 +94,7 @@ func Create(modify bool) {
 	}
 
 	SaveConfig(newConfig)
-	fmt.Println(`Config setup complete! Run the "config-setup" application again if you want to modify it.`)
+	fmt.Println(`Config setup complete! Run the "manga-translator-setup" application again if you want to modify it.`)
 	fmt.Println("Press 'Enter' to exit.")
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
 	os.Exit(0)
@@ -207,14 +207,14 @@ func modifyConfirmation(msg string) bool {
 	return false
 }
 
-// SaveConfig saves the given ConfigFile object in "config.yml".
+// SaveConfig saves the given ConfigFile object in "mtl-config.yml".
 func SaveConfig(cfg File) {
 	d, err := yaml.Marshal(&cfg)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
 
-	err = ioutil.WriteFile("config.yml", d, 0644)
+	err = ioutil.WriteFile("mtl-config.yml", d, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}

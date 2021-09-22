@@ -29,10 +29,10 @@ to download the latest version.
 go get -u github.com/cameronkinsella/manga-translator/cmd/manga-translator
 
 # Config setup application
-go get -u github.com/cameronkinsella/manga-translator/cmd/config-setup
+go get -u github.com/cameronkinsella/manga-translator/cmd/manga-translator-setup
 ```
 
-> Note: manga-translator creates a config.yml and cache.bin in the same directory as the binary,
+> Note: manga-translator creates a mtl-config.yml and mtl-cache.bin in the same directory as the binary,
 > so consider changing your GOPATH to a more suitable directory before installing.
 
 ## Prerequisites
@@ -77,8 +77,8 @@ This API key will be needed to configure manga-translator (if you want to use th
 
 Do one of the following:
 
-1. Run the `config-setup` application and follow the interactive prompts
-2. Create the `config.yml` file manually
+1. Run the `manga-translator-setup` application and follow the interactive prompts
+2. Create the `mtl-config.yml` file manually
    by [following the schema](https://github.com/cameronkinsella/manga-translator/blob/master/pkg/config/README.md)
 
 ### Command
