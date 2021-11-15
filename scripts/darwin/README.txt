@@ -13,3 +13,7 @@ For images from a URL (2 options):
 For local images (2 options):
 1. run "translate-local-image.sh" and paste the image path.
 2. run "manga-translator <IMAGE PATH>" from the command line.
+
+For images in your clipboard (2 options):
+1. run "translate-clipboard-image.sh".
+2. run "manga-translator -clip" from the command line.

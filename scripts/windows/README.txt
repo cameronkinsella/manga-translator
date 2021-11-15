@@ -14,3 +14,10 @@ For local images (3 options):
 1. run "translate-local-image.bat" and paste the image path.
 2. drag and drop the image on top of manga-translator.exe (open with manga-translator.exe).
 3. run "manga-translator.exe <IMAGE PATH>" from the command line.
+
+For images in your clipboard (2 options):
+1. run "translate-clipboard-image.bat".
+2. run "manga-translator.exe -clip" from the command line.
+
+Note: the clipboard translation option is very useful when used
+in conjunction with the Windows snipping tool (Windows key + Shift + S)

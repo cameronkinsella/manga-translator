@@ -34,7 +34,7 @@ var (
 )
 
 // DrawFrame squares with labels, buttons control labels. "url" states if the given imgPath is a URL or not.
-func DrawFrame(w *app.Window, img *image.RGBA, imgPath string, imgHash string, imgDims imageW.Dimensions, url bool, cfg config.File) error {
+func DrawFrame(w *app.Window, img *image.RGBA, imgPath string, imgHash string, imgDims imageW.Dimensions, url, clip bool, cfg config.File) error {
 
 	// ops are the operations from the UI
 	var ops op.Ops
@@ -67,7 +67,7 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath string, imgHash string, i
 
 		if blocks == nil {
 			// Scan image, get text annotation.
-			annotation, err := detect.GetAnnotation(imgPath, url)
+			annotation, err := detect.GetAnnotation(imgPath, url, clip)
 			if err != nil {
 				blocks = []detect.TextBlock{}
 				selectedO = err.Error()
