@@ -35,21 +35,26 @@ func main() {
 
 	// Parse flags.
 	urlImagePtr := flag.Bool("url", false, "Use an image from a URL instead of a local file.")
+	clipImagePtr := flag.Bool("clip", false, "Use an image from the clipboard.") // overrides url
 	flag.Parse()
 	log.Infof("Use URL image: %v", *urlImagePtr)
+	log.Infof("Use clipboard image: %v", *clipImagePtr)
 
 	// Set up config, create new config if necessary.
 	var cfg config.File
 	config.Setup(applicationPath, &cfg)
 
 	// Open/download selected image and get its info.
-	if len(flag.Args()) == 0 {
+	if len(flag.Args()) == 0 && !*clipImagePtr {
 		log.Fatal("No path or URL given.")
 	}
-	imageFile := flag.Args()[0]
-	log.Infof("Selected Image: %v", imageFile)
+	var imageFile string
+	if !*clipImagePtr {
+		imageFile = flag.Args()[0]
+		log.Infof("Selected Image: %v", imageFile)
+	}
 
-	mainImage, imgHash := imageW.Open(imageFile, *urlImagePtr)
+	mainImage, imgHash := imageW.Open(imageFile, *urlImagePtr, *clipImagePtr)
 	hashInBytes := imgHash.Sum(nil)
 	imgHashStr := hex.EncodeToString(hashInBytes)
 	log.Debugf("hash: %v", imgHashStr)
@@ -67,7 +72,7 @@ func main() {
 			app.MinSize(unit.Dp(600), unit.Dp(300)),
 		)
 
-		if err := window.DrawFrame(w, mainImage, imageFile, imgHashStr, dims, *urlImagePtr, cfg); err != nil {
+		if err := window.DrawFrame(w, mainImage, imageFile, imgHashStr, dims, *urlImagePtr, *clipImagePtr, cfg); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)

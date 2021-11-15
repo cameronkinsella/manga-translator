@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	log "github.com/sirupsen/logrus"
+	"golang.design/x/clipboard"
 	"hash"
 	"image"
 	"image/draw"
@@ -19,19 +20,39 @@ type Dimensions struct {
 
 // Open opens the image at the given path/URL and returns both the image and its sha256 hash.
 // "url" parameter specifies if the given file string is a URL.
-func Open(file string, url bool) (*image.RGBA, hash.Hash) {
+// "clip" parameter specifies if the image should be taken from the clipboard (overrides "url" parameter)
+func Open(file string, url, clip bool) (*image.RGBA, hash.Hash) {
 	var img image.Image
 	var h hash.Hash
 
-	if url {
+	if clip {
+		imgByte := clipboard.Read(clipboard.FmtImage)
+		if imgByte == nil {
+			log.Fatal("Image not found in clipboard")
+		}
+
+		// Need TeeReader to read io.Reader twice without re-opening file
+		// https://stackoverflow.com/questions/39791021/how-to-read-multiple-times-from-same-io-reader
+		var buf bytes.Buffer
+		tee := io.TeeReader(bytes.NewReader(imgByte), &buf)
+
+		var err error
+		img, _, err = image.Decode(tee)
+		if err != nil {
+			log.Fatalf("Image decode error: %v", err)
+		}
+
+		h = sha256.New()
+		if _, err := io.Copy(h, &buf); err != nil {
+			log.Fatalf("Hash error: %v", err)
+		}
+	} else if url {
 		resp, err := http.Get(file)
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer resp.Body.Close()
 
-		// Need TeeReader to read io.Reader twice without re-opening file
-		// https://stackoverflow.com/questions/39791021/how-to-read-multiple-times-from-same-io-reader
 		var buf bytes.Buffer
 		tee := io.TeeReader(resp.Body, &buf)
 

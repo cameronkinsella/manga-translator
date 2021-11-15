@@ -1,10 +1,12 @@
 package detect
 
 import (
+	"bytes"
 	vision "cloud.google.com/go/vision/apiv1"
 	"context"
 	"errors"
 	log "github.com/sirupsen/logrus"
+	"golang.design/x/clipboard"
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 	"image/color"
 	_ "image/jpeg"
@@ -31,7 +33,7 @@ type TextBlock struct {
 var errInvalidVisionPath = errors.New(`path given for Vision API service account credentials is invalid. Please run the "manga-translator-setup" application to fix it`)
 
 // GetAnnotation gets text (TextAnnotation) from the Vision API for an image at the given file path.
-func GetAnnotation(file string, url bool) (*pb.TextAnnotation, error) {
+func GetAnnotation(file string, url, clip bool) (*pb.TextAnnotation, error) {
 	ctx := context.Background()
 
 	client, err := vision.NewImageAnnotatorClient(ctx)
@@ -45,7 +47,18 @@ func GetAnnotation(file string, url bool) (*pb.TextAnnotation, error) {
 	}
 
 	var visionImg *pb.Image
-	if url {
+	if clip {
+		imgByte := clipboard.Read(clipboard.FmtImage)
+		if imgByte == nil {
+			log.Fatal("Image not found in clipboard")
+		}
+
+		visionImg, err = vision.NewImageFromReader(bytes.NewReader(imgByte))
+		if err != nil {
+			log.Errorf("NewImageFromReader: %v", err)
+			return nil, err
+		}
+	} else if url {
 		visionImg = vision.NewImageFromURI(file)
 	} else {
 		f, err := os.Open(file)

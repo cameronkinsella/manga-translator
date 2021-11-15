@@ -84,13 +84,16 @@ Do one of the following:
 ### Command
 
 ```
-Usage: manga-translator.exe [OPTIONS] IMAGE_LOCATION
+Usage: manga-translator.exe [OPTIONS] [IMAGE_LOCATION]
+
+
+Arguments:
+  IMAGE_LOCATION   The path or URL of the image (not required if using -clip option).
 
 Options:
-  -url   Use an image from a URL instead of a local file.
+  -url             Use an image from a URL instead of a local file.
+  -clip            Use an image from your clipboard.
 ```
-
-> IMAGE_LOCATION must be a path or a URL.
 
 > Note: You can also open images with the `manga-translator` application itself
 (on Windows, you can easily do this by dragging the image on top of `manga-translator.exe`)

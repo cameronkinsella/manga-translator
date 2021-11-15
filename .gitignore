@@ -27,3 +27,8 @@ mtl-cache.bin
 *.log
 
 test_images/
+
+# Build folders
+build/windows*/
+build/linux*/
+build/darwin*/
