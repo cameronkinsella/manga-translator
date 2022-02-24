@@ -1,0 +1,69 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: MangaTranslatorConfig
+type: object
+required:
+  - cloudVision
+  - translation
+additionalProperties: false
+properties:
+  cloudVision:
+    $id: '#root/cloudVision'
+    type: object
+    required:
+      - credentialsPath
+    properties:
+      credentialsPath:
+        $id: '#root/cloudVision/credentialsPath'
+        description: |-
+          The path to the gcloud service credentials file with access to the cloudVision API.
+        type: string
+  translation:
+    $id: '#root/translation'
+    type: object
+    required:
+      - selectedService
+    properties:
+      selectedService:
+        $id: '#root/translation/selectedService'
+        description: |-
+          The translation service which you would like to use.
+        type: string
+        enum:
+          - deepL
+          - google
+      targetLanguage:
+        $id: '#root/translation/targetLanguage'
+        description: |-
+          The target language ISO-639-1 code.
+          Cloud Translation languages: https://cloud.google.com/translate/docs/languages
+          DeepL languages: https://www.deepl.com/docs-api/other-functions/listing-supported-languages/
+        type: string
+      sourceLanguage:
+        $id: '#root/translation/sourceLanguage'
+        description: |-
+          The source language ISO-639-1 code.
+          Cloud Translation languages: https://cloud.google.com/translate/docs/languages
+          DeepL languages: https://www.deepl.com/docs-api/other-functions/listing-supported-languages/
+        type: string
+      google:
+        $id: '#root/translation/google'
+        type: object
+        required:
+          - apiKey
+        properties:
+          apiKey:
+            $id: '#root/translation/google/apiKey'
+            description: |-
+              Your API key for the Cloud Translation API.
+            type: string
+      deepL:
+        $id: '#root/translation/deepL'
+        type: object
+        required:
+          - apiKey
+        properties:
+          apiKey:
+            $id: '#root/translation/deepL/apiKey'
+            description: |-
+              Your API key for the DeepL API.
+            type: string

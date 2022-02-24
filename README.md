@@ -79,7 +79,7 @@ Do one of the following:
 
 1. Run the `manga-translator-setup` application and follow the interactive prompts
 2. Create the `mtl-config.yml` file manually
-   by [following the schema](https://github.com/cameronkinsella/manga-translator/blob/master/pkg/config/README.md)
+   by [following the schema](./pkg/config/mtl-config.schema.yml)
 
 ### Command
 
