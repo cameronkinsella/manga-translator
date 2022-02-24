@@ -1,6 +1,7 @@
 package window
 
 import (
+	"errors"
 	"gioui.org/app"
 	"gioui.org/f32"
 	"gioui.org/font/gofont"
@@ -84,19 +85,20 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath string, imgHash string, i
 				// Translate the text with the service specified in the config.
 				var allTranslated []string
 				if cfg.Translation.SelectedService == "google" {
-					allTranslated = translate.GoogleTranslate(allOriginal, cfg)
+					allTranslated, err = translate.GoogleTranslate(allOriginal, cfg.Translation.SourceLanguage, cfg.Translation.TargetLanguage, cfg.Translation.Google.APIKey)
 				} else if cfg.Translation.SelectedService == "deepL" {
-					allTranslated = translate.DeepLTranslate(allOriginal, cfg)
+					allTranslated, err = translate.DeepLTranslate(allOriginal, cfg.Translation.SourceLanguage, cfg.Translation.TargetLanguage, cfg.Translation.DeepL.APIKey)
 				} else {
 					allTranslated = translate.TranslationError(
 						`Your config does not have a valid selected service, run the "manga-translator-setup" application again.`,
 						allOriginal,
 					)
+					err = errors.New("no selected service")
 				}
 				for i, txt := range allTranslated {
 					blocks[i].Translated = txt
 				}
-				if cfg.Translation.SelectedService == "google" || cfg.Translation.SelectedService == "deepL" {
+				if err == nil {
 					cache.Add(imgHash, cfg.Translation.SelectedService, blocks)
 				}
 			}

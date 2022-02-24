@@ -3,35 +3,53 @@ package translate
 import (
 	"cloud.google.com/go/translate"
 	"context"
-	"github.com/cameronkinsella/manga-translator/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/text/language"
 	"google.golang.org/api/option"
 )
 
-// GoogleTranslate translates the given slice of strings from Japanese to English using the Google Cloud Translation API.
-func GoogleTranslate(txt []string, cfg config.File) []string {
+// GoogleTranslate translates the given slice of strings from source language to target language using the Google Cloud Translation API.
+func GoogleTranslate(txt []string, source, target, apiKey string) ([]string, error) {
+	log.WithFields(log.Fields{
+		"sourceLanguage": source,
+		"targetLanguage": target,
+	}).Debug("Input languages")
+
+	options := translate.Options{
+		Format: translate.Text,
+	}
+
+	// Set source language if one was given. Otherwise, do not specify (automatically detect source language).
+	if source != "" {
+		sourceLang, err := language.Parse(source)
+		if err != nil {
+			log.Errorf("language.Parse: %v", err)
+			return TranslationError("Invalid source language selected in config.", txt), err
+		}
+		options.Source = sourceLang
+	}
+
+	targetLang, err := language.Parse(target)
+	if err != nil {
+		log.Errorf("language.Parse: %v", err)
+		return TranslationError("Invalid target language selected in config.", txt), err
+	}
+
 	ctx := context.Background()
-	apiKeyOption := option.WithAPIKey(cfg.Translation.Google.APIKey)
+	apiKeyOption := option.WithAPIKey(apiKey)
 	client, err := translate.NewClient(ctx, apiKeyOption)
 	if err != nil {
 		log.Errorf("NewClient: %v", err)
-		return TranslationError("Translation request failed, ensure that your API key is correct.", txt)
+		return TranslationError("Translation request failed, ensure that your API key is correct.", txt), err
 	}
 	defer client.Close()
 
-	resp, err := client.Translate(ctx, txt,
-		language.English,
-		&translate.Options{
-			Source: language.Japanese,
-			Format: translate.Text,
-		},
-	)
+	resp, err := client.Translate(ctx, txt, targetLang, &options)
 	log.Debug(resp)
 
 	if err != nil {
 		log.Errorf("Translate: %v", err)
-		return TranslationError("Translation request failed, ensure that your API key is correct.", txt)
+		return TranslationError("Translation request failed, ensure that your API key is correct.", txt), err
 	}
 
 	var translated []string
@@ -39,5 +57,5 @@ func GoogleTranslate(txt []string, cfg config.File) []string {
 		translated = append(translated, t.Text)
 	}
 
-	return translated
+	return translated, nil
 }

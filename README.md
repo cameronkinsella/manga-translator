@@ -1,6 +1,6 @@
 # Manga Translator
 
-An easy-to-use application for translating text in images from Japanese to English.
+An easy-to-use application for translating text in images in many languages.
 
 The GUI was created using [Gio](https://gioui.org/). Gio supports a variety of platforms, including browsers, but this
 application was designed to be used as a desktop application only.

@@ -2,12 +2,19 @@ package config
 
 import (
 	"bufio"
+	"cloud.google.com/go/translate"
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/inancgumus/screen"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"golang.org/x/text/language"
+	"google.golang.org/api/option"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -19,14 +26,27 @@ type File struct {
 	} `yaml:"cloudVision"`
 	Translation struct {
 		SelectedService string `yaml:"selectedService"`
+		SourceLanguage  string `yaml:"sourceLanguage,omitempty"`
+		TargetLanguage  string `yaml:"targetLanguage"`
 		Google          struct {
 			APIKey string `yaml:"apiKey"`
 		} `yaml:"google"`
 		DeepL struct {
-			APIKey  string `yaml:"apiKey"`
-			Premium bool   `yaml:"premium"`
+			APIKey string `yaml:"apiKey"`
 		} `yaml:"deepL"`
 	} `yaml:"translation"`
+}
+
+// deepLLanguage is the structure of language objects returned from the language list API.
+type deepLLanguage struct {
+	Language string `json:"language"`
+	Name     string `json:"name"`
+}
+
+// languageObj is used to map ISO-639-1 codes to their respective languages.
+type languageObj struct {
+	Code     string
+	Language string
 }
 
 // Create initiates an interactive setup for the config file.
@@ -82,6 +102,8 @@ func Create(modify bool) {
 		return
 	}
 
+	updateLang := false
+
 	// Set which service we will be using
 	if newConfig.Translation.Google.APIKey == "" {
 		newConfig.Translation.SelectedService = "deepL"
@@ -89,8 +111,33 @@ func Create(modify bool) {
 		newConfig.Translation.SelectedService = "google"
 	} else {
 		if !modify || modifyConfirmation("Would you like to change which translation service you want to use?") {
+			prevService := newConfig.Translation.SelectedService
 			selectTLService(&newConfig)
+			if modify && prevService != newConfig.Translation.SelectedService {
+				log.WithFields(log.Fields{
+					"prevService": prevService,
+					"newService":  newConfig.Translation.SelectedService,
+				}).Debug("Translation service changed")
+
+				fmt.Println("Successfully changed the translation service.\n" +
+					`You will need to update your "source language" and "target language".`)
+				fmt.Println("Press 'Enter' to continue.")
+				bufio.NewReader(os.Stdin).ReadBytes('\n')
+				screen.Clear()
+				screen.MoveTopLeft()
+				updateLang = true
+			}
 		}
+	}
+
+	// Source language
+	if !modify || updateLang || modifyConfirmation("Would you like to change your source language?") {
+		setupSourceLanguage(&newConfig)
+	}
+
+	// Target language
+	if !modify || updateLang || modifyConfirmation("Would you like to change your target language?") {
+		setupTargetLanguage(&newConfig)
 	}
 
 	SaveConfig(newConfig)
@@ -140,26 +187,6 @@ func setupDeepLConfig(config *File) {
 	screen.Clear()
 	screen.MoveTopLeft()
 	log.Debugf("deepLKey: %v", deepLKey)
-
-	// Check if DeepL Pro
-	deepLPremium := false
-	if deepLKey != "" {
-		var deepLPremiumStr string
-		for !(deepLPremiumStr == "yes" || deepLPremiumStr == "no") {
-			fmt.Println("Is your DeepL API key for a DeepL Pro account? (yes/no):")
-			reader = bufio.NewReader(os.Stdin)
-			deepLPremiumStr, _ = reader.ReadString('\n')
-			deepLPremiumStr = strings.TrimSuffix(deepLPremiumStr, "\r\n")
-			deepLPremiumStr = strings.TrimSuffix(deepLPremiumStr, "\n")
-			screen.Clear()
-			screen.MoveTopLeft()
-			log.Debugf("deepLPremiumStr: %v", deepLPremiumStr)
-		}
-		if deepLPremiumStr == "yes" {
-			deepLPremium = true
-		}
-	}
-	config.Translation.DeepL.Premium = deepLPremium
 }
 
 // setupDeepLConfig initiates an interactive prompt to set the desired translation service for the given config.
@@ -185,6 +212,175 @@ func selectTLService(config *File) {
 		selectedService = "deepL"
 	}
 	config.Translation.SelectedService = selectedService
+}
+
+// setupSourceLanguage initiates an interactive prompt to set the desired source language for the given config.
+func setupSourceLanguage(config *File) {
+	supportedLangs := getSupportedLanguages(config, "source")
+	var sourceLang string
+	for !isSupportedLanguage(supportedLangs, sourceLang) {
+		fmt.Println("Enter 'list' to display all source languages (the language you will translate from).\n" +
+			"Input the source language ISO-639-1 code (leave blank to automatically detect language):")
+		reader := bufio.NewReader(os.Stdin)
+		sourceLang, _ = reader.ReadString('\n')
+		sourceLang = strings.TrimSuffix(sourceLang, "\r\n")
+		sourceLang = strings.TrimSuffix(sourceLang, "\n")
+		if sourceLang == "list" {
+			screen.Clear()
+			screen.MoveTopLeft()
+			fmt.Println("\"code\": Language\n——————————————————")
+			for _, i := range supportedLangs {
+				fmt.Printf("%q: %s\n", i.Code, i.Language)
+			}
+			fmt.Println("")
+			defer setupSourceLanguage(config)
+			return
+		}
+		screen.Clear()
+		screen.MoveTopLeft()
+		log.Debugf("sourceLanguage: %v", sourceLang)
+
+		// Blank source will delete it from config. Translators will then choose automatic detection.
+		if sourceLang == "" {
+			break
+		}
+	}
+	config.Translation.SourceLanguage = sourceLang
+}
+
+// setupTargetLanguage initiates an interactive prompt to set the desired target language for the given config.
+func setupTargetLanguage(config *File) {
+	supportedLangs := getSupportedLanguages(config, "target")
+	var targetLang string
+	for !isSupportedLanguage(supportedLangs, targetLang) {
+		fmt.Println("Enter 'list' to display all target languages (the language you will translate to).\n" +
+			"Input the target language ISO-639-1 code (leave blank for english):")
+		reader := bufio.NewReader(os.Stdin)
+		targetLang, _ = reader.ReadString('\n')
+		targetLang = strings.TrimSuffix(targetLang, "\r\n")
+		targetLang = strings.TrimSuffix(targetLang, "\n")
+		if targetLang == "list" {
+			screen.Clear()
+			screen.MoveTopLeft()
+			fmt.Println("\"code\": Language\n——————————————————")
+			for _, i := range supportedLangs {
+				fmt.Printf("%q: %s\n", i.Code, i.Language)
+			}
+			fmt.Println("")
+			defer setupTargetLanguage(config)
+			return
+		} else if targetLang == "" {
+			if config.Translation.SelectedService == "google" {
+				targetLang = "en"
+			} else {
+				targetLang = "EN-US"
+			}
+		}
+		screen.Clear()
+		screen.MoveTopLeft()
+		log.Debugf("targetLanguage: %v", targetLang)
+	}
+	config.Translation.TargetLanguage = targetLang
+}
+
+// isSupportedLanguage returns if the given ISO-639-1 language code is contained in the given slice of languages.
+func isSupportedLanguage(languageList []languageObj, languageCode string) bool {
+	for _, i := range languageList {
+		if i.Code == languageCode {
+			return true
+		}
+	}
+	return false
+}
+
+// getSupportedLanguages returns a list of languages which are supported for the given language type (source or target)
+// using the translation service written in the Translation.SelectedService field of the given config.
+func getSupportedLanguages(config *File, languageType string) (languageList []languageObj) {
+	if config.Translation.SelectedService == "google" {
+		ctx := context.Background()
+
+		// Display results in english.
+		lang, err := language.Parse("en")
+		if err != nil {
+			log.Errorf("language.Parse: %v", err)
+			fmt.Printf("Error: language.Parse: %v", err)
+			return
+		}
+
+		var client *translate.Client
+		if config.Translation.Google.APIKey == "" {
+			err = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", config.CloudVision.CredentialsPath)
+			if err != nil {
+				log.Fatalf("Unable set GOOGLE_APPLICATION_CREDENTIALS: %v", err)
+			}
+			client, err = translate.NewClient(ctx)
+			if err != nil {
+				log.Fatalf("NewClient: %v", err)
+			}
+		} else {
+			apiKeyOption := option.WithAPIKey(config.Translation.Google.APIKey)
+			client, err = translate.NewClient(ctx, apiKeyOption)
+			if err != nil {
+				log.Fatalf("translate.NewClient: %v", err)
+			}
+		}
+		defer client.Close()
+
+		langs, err := client.SupportedLanguages(ctx, lang)
+		if err != nil {
+			log.Errorf("SupportedLanguages: %v", err)
+			fmt.Printf("Error: SupportedLanguages: %v", err)
+			return
+		}
+
+		for _, lang := range langs {
+			languageList = append(languageList, languageObj{lang.Tag.String(), lang.Name})
+		}
+	} else {
+		var baseUrl string
+		if strings.HasSuffix(config.Translation.DeepL.APIKey, ":fx") {
+			baseUrl = "https://api-free.deepl.com/v2/"
+		} else {
+			baseUrl = "https://api.deepl.com/v2/"
+		}
+
+		params := url.Values{}
+		params.Add("auth_key", config.Translation.DeepL.APIKey)
+		params.Add("type", languageType)
+
+		reqBody := strings.NewReader(params.Encode())
+
+		resp, err := http.Post(baseUrl+"languages", "application/x-www-form-urlencoded", reqBody)
+		if err != nil {
+			log.Errorf("http.Post: %v", err)
+			return
+		}
+		defer resp.Body.Close()
+		log.Debugf("Language list response: %v", resp)
+
+		data, err2 := ioutil.ReadAll(resp.Body)
+		if err2 != nil {
+			log.Errorf("Error reading response body: %v \n", err2)
+			return
+		}
+
+		// Empty response body, something went wrong.
+		if len(data) == 0 {
+			log.Error("Empty response body from language list request")
+			return
+		}
+
+		var jsonData []deepLLanguage
+		if err := json.Unmarshal(data, &jsonData); err != nil {
+			log.Errorf("Parse response failed: %v", err)
+			return
+		}
+
+		for _, i := range jsonData {
+			languageList = append(languageList, languageObj{i.Language, i.Name})
+		}
+	}
+	return
 }
 
 // modifyConfirmation initiates an interactive confirmation prompt and returns the response as a bool.
