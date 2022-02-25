@@ -1,4 +1,4 @@
-build-all: windows-amd64 windows-386 linux-amd64 linux-386 darwin-amd64
+build-all: windows-amd64 windows-386 linux-amd64 linux-386 darwin-amd64 darwin-arm64
 
 windows-amd64:
 	GOOS=windows GOARCH=amd64 go build -v -o windows-amd64/ -ldflags -H=windowsgui ../cmd/manga-translator
@@ -19,3 +19,7 @@ linux-386:
 darwin-amd64:
 	GOOS=darwin GOARCH=amd64 go build -v -o darwin-amd64/ ../cmd/manga-translator
 	GOOS=darwin GOARCH=amd64 go build -v -o darwin-amd64/ ../cmd/manga-translator-setup
+
+darwin-arm64:
+	GOOS=darwin GOARCH=arm64 go build -v -o darwin-arm64/ ../cmd/manga-translator
+	GOOS=darwin GOARCH=aarm64 go build -v -o darwin-arm64/ ../cmd/manga-translator-setup
