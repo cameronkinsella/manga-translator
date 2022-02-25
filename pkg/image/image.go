@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 type Dimensions struct {
@@ -66,7 +67,7 @@ func Open(file string, url, clip bool) (*image.RGBA, hash.Hash) {
 			log.Fatalf("Hash error: %v", err)
 		}
 	} else {
-		f, err := os.Open(file)
+		f, err := os.Open(filepath.ToSlash(file))
 		if err != nil {
 			log.Fatal(err)
 		}
