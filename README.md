@@ -43,25 +43,36 @@ go get -u github.com/cameronkinsella/manga-translator/cmd/manga-translator-setup
 
 **At least one of the following are required:**
 
-- Google Cloud Translation API key
+- Google Cloud Translation API enabled
 - DeepL API key (Free or Pro)
 
 ---
 
-### Google Cloud Vision API
+### [Google Cloud Vision API](https://cloud.google.com/vision/docs/before-you-begin)
 
-Follow steps 1-5 of this guide :point_right:
-[Cloud Vision API setup](https://cloud.google.com/vision/docs/before-you-begin).
+Quick guide:
+1. [Enable the Cloud Vision API](https://console.cloud.google.com/flows/enableapi?apiid=vision.googleapis.com)
+2. [Enable the IAM API](https://console.cloud.google.com/flows/enableapi?apiid=iam.googleapis.com)
+3. Press the button below to create a new service account key:
+
+   [![Open in Cloud Shell][shell_img]][sa_key]
 
 This will create a service account key for the Vision API. The path to this JSON key will be needed to configure
 manga-translator.
 
-### Google Cloud Translation API
+### [Google Cloud Translation API](https://cloud.google.com/translate/docs/setup)
 
-1. [Enable the Cloud Translation API](https://cloud.google.com/translate/docs/setup#api)
-2. [Create an API key for the Cloud Translation API](https://cloud.google.com/docs/authentication/api-keys?hl=en#creating_an_api_key)
+Quick guide:
 
-This API key will be needed to configure manga-translator (if you want to use this translation service).
+- [Enable the Cloud Translation API](https://console.cloud.google.com/flows/enableapi?apiid=translate.googleapis.com)
+
+If you are using the same project as your Cloud Vision API and service key, then that is all.
+
+If you are using a different project for the Cloud Vision API, you must also do the following:
+
+- Press the button below to create a new [Cloud Vision API key](https://cloud.google.com/docs/authentication/api-keys?hl=en#creating_an_api_key):
+
+   [![Open in Cloud Shell][shell_img]][sa_key]
 
 ### DeepL Translation API
 
@@ -97,3 +108,7 @@ Options:
 
 > Note: You can also open images with the `manga-translator` application itself
 (on Windows, you can easily do this by dragging the image on top of `manga-translator.exe`)
+
+[shell_img]: https://gstatic.com/cloudssh/images/open-btn.png
+[sa_key]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/cameronkinsella/manga-translator&open_in_editor=scripts/cloudshell/create-service-account-key.md
+[api_key]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/cameronkinsella/manga-translator&open_in_editor=scripts/cloudshell/create-translation-api-key.md
