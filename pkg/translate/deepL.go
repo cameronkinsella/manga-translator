@@ -52,6 +52,10 @@ func DeepLTranslate(txt []string, source, target, apiKey string) ([]string, erro
 	if source != "" {
 		params.Add("source_lang", source)
 	}
+	// Support configs which do not have "targetLanguage" (version <=1.2.0)
+	if target == "" {
+		target = "EN-US"
+	}
 	params.Add("auth_key", apiKey)
 	params.Add("target_lang", target)
 	reqBody := strings.NewReader(params.Encode())

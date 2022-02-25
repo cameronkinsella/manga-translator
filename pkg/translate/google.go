@@ -29,6 +29,11 @@ func GoogleTranslate(txt []string, source, target, apiKey string) ([]string, err
 		options.Source = sourceLang
 	}
 
+	// Support configs which do not have "targetLanguage" (version <=1.2.0)
+	if target == "" {
+		target = "en"
+	}
+
 	targetLang, err := language.Parse(target)
 	if err != nil {
 		log.Errorf("language.Parse: %v", err)
