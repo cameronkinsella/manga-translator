@@ -72,7 +72,7 @@ If you are using a different project for the Cloud Vision API, you must also do 
 
 - Press the button below to create a new [Cloud Vision API key](https://cloud.google.com/docs/authentication/api-keys?hl=en#creating_an_api_key):
 
-   [![Open in Cloud Shell][shell_img]][sa_key]
+   [![Open in Cloud Shell][shell_img]][api_key]
 
 ### DeepL Translation API
 
