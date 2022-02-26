@@ -36,11 +36,20 @@ func GoogleTranslate(txt []string, source, target, apiKey string) ([]string, err
 	}
 
 	ctx := context.Background()
-	apiKeyOption := option.WithAPIKey(apiKey)
-	client, err := translate.NewClient(ctx, apiKeyOption)
-	if err != nil {
-		log.Errorf("NewClient: %v", err)
-		return TranslationError("Translation request failed, ensure that your API key is correct.", txt), err
+	var client *translate.Client
+	if apiKey == "" {
+		client, err = translate.NewClient(ctx)
+		if err != nil {
+			log.Errorf("NewClient: %v", err)
+			return TranslationError("Translation request failed, ensure that the absolute path given for your Vision API service account key is correct", txt), err
+		}
+	} else {
+		apiKeyOption := option.WithAPIKey(apiKey)
+		client, err = translate.NewClient(ctx, apiKeyOption)
+		if err != nil {
+			log.Errorf("NewClient: %v", err)
+			return TranslationError("Translation request failed, ensure that your API key is correct.", txt), err
+		}
 	}
 	defer client.Close()
 

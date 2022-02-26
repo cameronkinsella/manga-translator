@@ -29,11 +29,11 @@ type File struct {
 		SourceLanguage  string `yaml:"sourceLanguage,omitempty"`
 		TargetLanguage  string `yaml:"targetLanguage"`
 		Google          struct {
-			APIKey string `yaml:"apiKey"`
-		} `yaml:"google"`
+			APIKey string `yaml:"apiKey,omitempty"`
+		} `yaml:"google,omitempty"`
 		DeepL struct {
-			APIKey string `yaml:"apiKey"`
-		} `yaml:"deepL"`
+			APIKey string `yaml:"apiKey,omitempty"`
+		} `yaml:"deepL,omitempty"`
 	} `yaml:"translation"`
 }
 
@@ -96,20 +96,17 @@ func Create(modify bool) {
 		setupDeepLConfig(&newConfig)
 	}
 
-	if newConfig.Translation.Google.APIKey == "" && newConfig.Translation.DeepL.APIKey == "" {
-		defer Create(false)
-		fmt.Println("You must enter at least 1 API key to use the application. Please try again.")
-		return
-	}
-
 	updateLang := false
 
 	// Set which service we will be using
-	if newConfig.Translation.Google.APIKey == "" {
-		newConfig.Translation.SelectedService = "deepL"
-	} else if newConfig.Translation.DeepL.APIKey == "" {
+	if newConfig.Translation.DeepL.APIKey == "" {
+		// Only Google key or no API keys
 		newConfig.Translation.SelectedService = "google"
+	} else if newConfig.Translation.Google.APIKey == "" {
+		// Only DeepL key
+		newConfig.Translation.SelectedService = "deepL"
 	} else {
+		// Both Google key and DeepL key. Must choose which one to use.
 		if !modify || modifyConfirmation("Would you like to change which translation service you want to use?") {
 			prevService := newConfig.Translation.SelectedService
 			selectTLService(&newConfig)
@@ -165,7 +162,7 @@ func setupVisionAPIKey(config *File) {
 
 // setupGoogleAPIKey initiates an interactive prompt to set the Google Translation API key for the given config.
 func setupGoogleAPIKey(config *File) {
-	fmt.Println("Input your Google Cloud Translation API key (leave blank if you don't have one):")
+	fmt.Println("Input your Google Cloud Translation API key (leave blank if you don't have one or want to use your service account key instead):")
 	reader := bufio.NewReader(os.Stdin)
 	googleTranslateKey, _ := reader.ReadString('\n')
 	googleTranslateKey = strings.TrimSuffix(googleTranslateKey, "\r\n")

@@ -55,6 +55,8 @@ properties:
             $id: '#root/translation/google/apiKey'
             description: |-
               Your API key for the Cloud Translation API.
+              This field can be ommited if you want to use your service account key for the
+              Cloud Translation API instead.
             type: string
       deepL:
         $id: '#root/translation/deepL'
