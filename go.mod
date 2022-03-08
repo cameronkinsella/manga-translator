@@ -10,6 +10,7 @@ require (
 	github.com/inancgumus/screen v0.0.0-20190314163918-06e984b86ed3
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/viper v1.8.1
+	golang.design/x/clipboard v0.5.3
 	golang.org/x/text v0.3.6
 	google.golang.org/api v0.56.0
 	google.golang.org/genproto v0.0.0-20210831024726-fe130286e0e2
@@ -35,7 +36,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.design/x/clipboard v0.5.3 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/exp v0.0.0-20210722180016-6781d3edade3 // indirect
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d // indirect
