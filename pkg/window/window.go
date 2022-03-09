@@ -29,6 +29,7 @@ import (
 
 type textBlocks struct {
 	finished bool
+	ok       bool
 }
 
 // Colors
@@ -132,7 +133,7 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath, imgHash string, imgDims 
 					// Translation panel
 					layout.Rigid(
 						func(gtx C) D {
-							if !txt.finished {
+							if !txt.finished || !txt.ok {
 								return translatorWidget(gtx, th, originalBtn, status, "Loading...")
 							} else {
 								var split Split
@@ -164,6 +165,7 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, im
 	// Signal goroutine death and update frame when finished.
 	defer func() {
 		t.finished = true
+		t.ok = *status == `Done!`
 		w.Invalidate()
 	}()
 
@@ -202,10 +204,7 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, im
 		} else if cfg.Translation.SelectedService == "deepL" {
 			allTranslated, err = translate.DeepLTranslate(allOriginal, cfg.Translation.SourceLanguage, cfg.Translation.TargetLanguage, cfg.Translation.DeepL.APIKey)
 		} else {
-			allTranslated = translate.TranslationError(
-				`Your config does not have a valid selected service, run the "manga-translator-setup" application again.`,
-				allOriginal,
-			)
+			*status = `Your config does not have a valid selected service, run the "manga-translator-setup" application again.`
 			err = errors.New("no selected service")
 		}
 		for i, txt := range allTranslated {
@@ -213,12 +212,16 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, im
 		}
 		if err == nil {
 			cache.Add(imgHash, cfg.Translation.SelectedService, *blocks)
+		} else {
+			*status = allTranslated[0]
+			return
 		}
 	} else {
 		for range *blocks {
 			*blockButtons = append(*blockButtons, widget.Clickable{})
 		}
 	}
+	*status = `Done!`
 }
 
 // blockBox creates a clickable box around the given text block, and returns the widget in a StackChild.
