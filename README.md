@@ -109,6 +109,13 @@ Options:
 > Note: You can also open images with the `manga-translator` application itself
 (on Windows, you can easily do this by dragging the image on top of `manga-translator.exe`)
 
+### GUI
+
+Coloured boxes will appear around all the text that was detected.
+Click on those boxes to display the original text and the translation of that text.
+
+You can click on the text in the "Original Text" or "Translated Text" sections to copy that text to your clipboard.
+
 [shell_img]: https://gstatic.com/cloudssh/images/open-btn.png
 [sa_key]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/cameronkinsella/manga-translator&open_in_editor=scripts/cloudshell/create-service-account-key.md
 [api_key]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/cameronkinsella/manga-translator&open_in_editor=scripts/cloudshell/create-translation-api-key.md
