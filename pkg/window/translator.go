@@ -39,7 +39,7 @@ func translatorWidget(gtx C, th *material.Theme, btn *widget.Clickable, txt, tit
 		layout.Rigid(divider),
 		// Body
 		layout.Rigid(func(gtx C) D {
-			return material.Clickable(gtx, btn, func(gtx C) D {
+			return Clickable(gtx, btn, false, func(gtx C) D {
 				gtx.Constraints.Min.X = gtx.Constraints.Max.X
 				w := layout.Inset{
 					Top:   unit.Dp(20),
@@ -63,15 +63,15 @@ func translatorWidget(gtx C, th *material.Theme, btn *widget.Clickable, txt, tit
 // divider is a horizontal divider widget.
 func divider(gtx C) D {
 	return layout.Center.Layout(gtx, func(gtx C) D {
-		defer op.Save(gtx.Ops).Load()
 		maxHeight := unit.Dp(4)
 
 		d := image.Point{X: gtx.Constraints.Max.X, Y: gtx.Px(maxHeight)}
 
 		height := float32(gtx.Px(maxHeight))
-		clip.UniformRRect(f32.Rectangle{Max: f32.Pt(float32(gtx.Constraints.Max.X), height)}, 0).Add(gtx.Ops)
+		area := clip.UniformRRect(f32.Rectangle{Max: f32.Pt(float32(gtx.Constraints.Max.X), height)}, 0).Push(gtx.Ops)
 		paint.ColorOp{Color: Gray}.Add(gtx.Ops)
 		paint.PaintOp{}.Add(gtx.Ops)
+		area.Pop()
 
 		return D{Size: d}
 	})
@@ -88,34 +88,24 @@ func (s Split) Layout(gtx C, left, right layout.Widget) D {
 	rightSize := gtx.Constraints.Min.X - rightOffset
 
 	{
-		stack := op.Save(gtx.Ops)
-
 		barRect := image.Rect(leftSize, 0, rightOffset, gtx.Constraints.Max.Y)
-		clip.Rect{Max: barRect.Max, Min: barRect.Min}.Add(gtx.Ops)
+		area := clip.Rect{Max: barRect.Max, Min: barRect.Min}.Push(gtx.Ops)
 		paint.ColorOp{Color: Gray}.Add(gtx.Ops)
 		paint.PaintOp{}.Add(gtx.Ops)
-		stack.Load()
+		area.Pop()
 	}
 
 	{
-		stack := op.Save(gtx.Ops)
-
 		gtx := gtx
 		gtx.Constraints = layout.Exact(image.Pt(leftSize, gtx.Constraints.Max.Y))
 		left(gtx)
-
-		stack.Load()
 	}
 
 	{
-		stack := op.Save(gtx.Ops)
-
 		gtx := gtx
 		gtx.Constraints = layout.Exact(image.Pt(rightSize, gtx.Constraints.Max.Y))
 		op.Offset(f32.Pt(float32(rightOffset), 0)).Add(gtx.Ops)
 		right(gtx)
-
-		stack.Load()
 	}
 
 	return D{Size: gtx.Constraints.Max}

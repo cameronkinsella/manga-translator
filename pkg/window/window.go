@@ -6,11 +6,10 @@ import (
 	"gioui.org/f32"
 	"gioui.org/font/gofont"
 	"gioui.org/font/opentype"
-	"gioui.org/io/pointer"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
-	"gioui.org/op/clip"
+	gclip "gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -49,7 +48,10 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath, imgHash string, imgDims 
 	var blockButtons []widget.Clickable
 
 	// Button widgets which will be placed over the translation widget for copying text to clipboard.
-	var originalBtn, translatedBtn widget.Clickable
+	var (
+		originalBtn   = new(widget.Clickable)
+		translatedBtn = new(widget.Clickable)
+	)
 
 	// Create material theme with Noto font to support a wide range of unicode.
 	fonts := gofont.Collection()
@@ -64,7 +66,7 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath, imgHash string, imgDims 
 	)
 
 	var txt textBlocks
-	go txt.getText(&cfg, &status, imgPath, imgHash, url, clip, &blocks, &blockButtons)
+	go txt.getText(w, &cfg, &status, imgPath, imgHash, url, clip, &blocks, &blockButtons)
 
 	// Listen for events in the window.
 	for {
@@ -131,14 +133,14 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath, imgHash string, imgDims 
 					layout.Rigid(
 						func(gtx C) D {
 							if !txt.finished {
-								return translatorWidget(gtx, th, &originalBtn, status, "Loading...")
+								return translatorWidget(gtx, th, originalBtn, status, "Loading...")
 							} else {
 								var split Split
 
 								return split.Layout(gtx, func(gtx C) D {
-									return translatorWidget(gtx, th, &originalBtn, selectedO, "Original Text")
+									return translatorWidget(gtx, th, originalBtn, selectedO, "Original Text")
 								}, func(gtx C) D {
-									return translatorWidget(gtx, th, &translatedBtn, selectedT, "Translated Text")
+									return translatorWidget(gtx, th, translatedBtn, selectedT, "Translated Text")
 								})
 							}
 						},
@@ -158,10 +160,11 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath, imgHash string, imgDims 
 // The `url` parameter can be used to specify if the given imgPath is a URL.
 // The `clip` parameter overrides the `url` parameter if true. It allows the imgPath to be ignored in favor of the image in your clipboard.
 // The `imgHash` parameter can be provided to skip annotations and translations if the hash is found in mtl-cache.bin
-func (t *textBlocks) getText(cfg *config.File, status *string, imgPath, imgHash string, url, clip bool, blocks *[]detect.TextBlock, blockButtons *[]widget.Clickable) {
-	// Signal goroutine death when finished.
+func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, imgPath, imgHash string, url, clip bool, blocks *[]detect.TextBlock, blockButtons *[]widget.Clickable) {
+	// Signal goroutine death and update frame when finished.
 	defer func() {
 		t.finished = true
+		w.Invalidate()
 	}()
 
 	var blankCfg config.File
@@ -222,7 +225,6 @@ func (t *textBlocks) getText(cfg *config.File, status *string, imgPath, imgHash 
 func blockBox(img D, originalDims imageW.Dimensions, block detect.TextBlock, btn *widget.Clickable) layout.StackChild {
 	return layout.Stacked(
 		func(gtx C) D {
-			defer op.Save(gtx.Ops).Load()
 			// The vertices are for the block locations when the image is at full size.
 			// To determine how much we should shrink/expand the boxes to maintain their correct position on
 			// the image widget, we must find a ratio multiplier.
@@ -244,18 +246,18 @@ func blockBox(img D, originalDims imageW.Dimensions, block detect.TextBlock, btn
 
 			// Create box, filled with semi-transparent color.
 			box := func(gtx C) D {
-				defer op.Save(gtx.Ops).Load()
-				clip.Rect{
+				area := gclip.Rect{
 					Max: image.Point{
 						X: int(boxSizeX * ratio),
 						Y: int(boxSizeY * ratio),
 					},
-				}.Add(gtx.Ops)
+				}.Push(gtx.Ops)
 
 				fillColor := block.Color
 				fillColor.A = 0x40
 				paint.ColorOp{Color: fillColor}.Add(gtx.Ops)
 				paint.PaintOp{}.Add(gtx.Ops)
+				defer area.Pop()
 				return D{Size: gtx.Constraints.Max}
 			}
 
@@ -268,17 +270,17 @@ func blockBox(img D, originalDims imageW.Dimensions, block detect.TextBlock, btn
 				}.Layout(gtx, box)
 			}
 
-			return material.Clickable(gtx, btn, borderedBox)
+			return Clickable(gtx, btn, true, borderedBox)
 		},
 	)
 }
 
 // colorBox creates a widget with the specified dimensions and color.
 func colorBox(gtx layout.Context, size image.Point, color color.NRGBA) layout.Dimensions {
-	defer op.Save(gtx.Ops).Load()
-	clip.Rect{Max: size}.Add(gtx.Ops)
+	area := gclip.Rect{Max: size}.Push(gtx.Ops)
 	paint.ColorOp{Color: color}.Add(gtx.Ops)
 	paint.PaintOp{}.Add(gtx.Ops)
+	area.Pop()
 	return layout.Dimensions{Size: size}
 }
 

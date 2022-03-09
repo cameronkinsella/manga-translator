@@ -5,7 +5,7 @@ go 1.17
 require (
 	cloud.google.com/go/translate v0.1.0
 	cloud.google.com/go/vision v0.1.0
-	gioui.org v0.0.0-20210827040121-baa98e773777
+	gioui.org v0.0.0-20220307121938-3e18a310af31
 	github.com/gonoto/notosans v0.0.0-20200703162533-d78fef05ce80
 	github.com/inancgumus/screen v0.0.0-20190314163918-06e984b86ed3
 	github.com/sirupsen/logrus v1.8.1
@@ -20,7 +20,7 @@ require (
 require (
 	cloud.google.com/go v0.94.0 // indirect
 	gioui.org/cpu v0.0.0-20210817075930-8d6a761490d2 // indirect
-	gioui.org/shader v1.0.1 // indirect
+	gioui.org/shader v1.0.6 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
