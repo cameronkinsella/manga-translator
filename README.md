@@ -22,14 +22,15 @@ application was designed to be used as a desktop application only.
 Visit the [releases page](https://github.com/cameronkinsella/manga-translator/releases/latest/)
 to download the latest version.
 
-### Option 2: `go get`
+### Option 2: `go install`
 
 ```sh
 # Manga Translator application
-go get -u github.com/cameronkinsella/manga-translator/cmd/manga-translator
-
+go install github.com/cameronkinsella/manga-translator/cmd/manga-translator@latest
+```
+```sh
 # Config setup application
-go get -u github.com/cameronkinsella/manga-translator/cmd/manga-translator-setup
+go install github.com/cameronkinsella/manga-translator/cmd/manga-translator-setup@latest
 ```
 
 > Note: manga-translator creates a mtl-config.yml and mtl-cache.bin in the same directory as the binary,
