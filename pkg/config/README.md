@@ -1,6 +1,8 @@
 # Config Schema
 
-If you wish to create `mtl-config.yml` manually, follow the [config schema](./mtl-config.schema.yml).
+If you wish to create `mtl/mtl-config.yml` manually, follow the [config schema](./mtl-config.schema.yml).
+
+The `mtl` directory which contains this config file should be in the same directory as the main application.
 
 Example config:
 

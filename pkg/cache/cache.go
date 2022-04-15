@@ -3,6 +3,7 @@ package cache
 import (
 	"encoding/gob"
 	"errors"
+	"github.com/cameronkinsella/manga-translator/pkg/config"
 	"github.com/cameronkinsella/manga-translator/pkg/detect"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -20,11 +21,7 @@ type Data struct {
 func read() []Data {
 	var cacheData []Data
 
-	cachePath, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
-	}
-	cachePath = filepath.Join(cachePath, "mtl-cache.bin")
+	cachePath := filepath.Join(config.Path(), "mtl-cache.bin")
 	cacheFile, err := os.Open(cachePath)
 	if errors.Is(err, os.ErrNotExist) {
 		// handle the case where the file doesn't exist
@@ -72,11 +69,7 @@ func Add(h string, service string, blocks []detect.TextBlock) {
 	log.Debugf("Adding new image to cache. sha256:%v", h)
 	cacheData := read()
 
-	cachePath, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
-	}
-	cachePath = filepath.Join(cachePath, "mtl-cache.bin")
+	cachePath := filepath.Join(config.Path(), "mtl-cache.bin")
 	cacheFile, err := os.OpenFile(cachePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		log.Fatal(err)

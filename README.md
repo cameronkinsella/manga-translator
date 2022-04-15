@@ -28,13 +28,11 @@ to download the latest version.
 # Manga Translator application
 go install github.com/cameronkinsella/manga-translator/cmd/manga-translator@latest
 ```
+
 ```sh
 # Config setup application
 go install github.com/cameronkinsella/manga-translator/cmd/manga-translator-setup@latest
 ```
-
-> Note: manga-translator creates a mtl-config.yml and mtl-cache.bin in the same directory as the binary,
-> so consider changing your GOPATH to a more suitable directory before installing.
 
 ## Prerequisites
 
@@ -52,6 +50,7 @@ go install github.com/cameronkinsella/manga-translator/cmd/manga-translator-setu
 ### [Google Cloud Vision API](https://cloud.google.com/vision/docs/before-you-begin)
 
 Quick guide:
+
 1. [Enable the Cloud Vision API](https://console.cloud.google.com/flows/enableapi?apiid=vision.googleapis.com)
 2. [Enable the IAM API](https://console.cloud.google.com/flows/enableapi?apiid=iam.googleapis.com)
 3. Press the button below to create a new service account key:
@@ -71,9 +70,10 @@ If you are using the same project as your Cloud Vision API and service key, then
 
 If you are using a different project for the Cloud Vision API, you must also do the following:
 
-- Press the button below to create a new [Cloud Vision API key](https://cloud.google.com/docs/authentication/api-keys?hl=en#creating_an_api_key):
+- Press the button below to create a
+  new [Cloud Vision API key](https://cloud.google.com/docs/authentication/api-keys?hl=en#creating_an_api_key):
 
-   [![Open in Cloud Shell][shell_img]][api_key]
+  [![Open in Cloud Shell][shell_img]][api_key]
 
 ### DeepL Translation API
 
@@ -90,8 +90,7 @@ This API key will be needed to configure manga-translator (if you want to use th
 Do one of the following:
 
 1. Run the `manga-translator-setup` application and follow the interactive prompts
-2. Create the `mtl-config.yml` file manually
-   by [following the schema](./pkg/config/mtl-config.schema.yml)
+2. Create the `mtl/mtl-config.yml` file manually by [following the schema](./pkg/config/mtl-config.schema.yml)
 
 ### Command
 
@@ -108,15 +107,17 @@ Options:
 ```
 
 > Note: You can also open images with the `manga-translator` application itself
-(on Windows, you can easily do this by dragging the image on top of `manga-translator.exe`)
+(on Windows, you can quickly do this by dragging the image on top of `manga-translator.exe`)
 
 ### GUI
 
-Coloured boxes will appear around all the text that was detected.
-Click on those boxes to display the original text and the translation of that text.
+Coloured boxes will appear around all the text that was detected. Click on those boxes to display the original text and
+the translation of that text.
 
 You can click on the text in the "Original Text" or "Translated Text" sections to copy that text to your clipboard.
 
 [shell_img]: https://gstatic.com/cloudssh/images/open-btn.png
+
 [sa_key]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/cameronkinsella/manga-translator&open_in_editor=scripts/cloudshell/create-service-account-key.md
+
 [api_key]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/cameronkinsella/manga-translator&open_in_editor=scripts/cloudshell/create-translation-api-key.md

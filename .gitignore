@@ -32,3 +32,6 @@ test_images/
 build/windows*/
 build/linux*/
 build/darwin*/
+
+# Generated files
+mtl/

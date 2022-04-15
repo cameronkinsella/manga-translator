@@ -20,11 +20,8 @@ func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetLevel(log.DebugLevel)
 
-	applicationPath, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
-	}
-	logPath := filepath.Join(applicationPath, "mtl-logrus.log")
+	settings := config.Path()
+	logPath := filepath.Join(settings, "mtl-logrus.log")
 	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
 	if err == nil {
 		log.SetOutput(f)
@@ -42,7 +39,7 @@ func main() {
 
 	// Set up config, create new config if necessary.
 	var cfg config.File
-	config.Setup(applicationPath, &cfg)
+	config.Setup(settings, &cfg)
 
 	// Open/download selected image and get its info.
 	if len(flag.Args()) == 0 && !*clipImagePtr {

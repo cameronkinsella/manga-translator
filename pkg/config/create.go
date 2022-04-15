@@ -16,10 +16,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
-// File is the mtl-config.yml structure.
+// File is the mtl/mtl-config.yml structure.
 type File struct {
 	CloudVision struct {
 		CredentialsPath string `yaml:"credentialsPath"`
@@ -55,6 +56,8 @@ type languageObj struct {
 func Create(modify bool) {
 	var newConfig File
 	var reader *bufio.Reader
+	screen.Clear()
+	screen.MoveTopLeft()
 
 	if modify {
 		var startOver string
@@ -400,14 +403,15 @@ func modifyConfirmation(msg string) bool {
 	return false
 }
 
-// SaveConfig saves the given ConfigFile object in "mtl-config.yml".
+// SaveConfig saves the given ConfigFile object in "mtl/mtl-config.yml".
 func SaveConfig(cfg File) {
 	d, err := yaml.Marshal(&cfg)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
 
-	err = ioutil.WriteFile("mtl-config.yml", d, 0644)
+	configPath := filepath.Join(Path(), "mtl-config.yml")
+	err = ioutil.WriteFile(configPath, d, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
