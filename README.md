@@ -5,8 +5,6 @@ An easy-to-use application for translating text in images in many languages.
 The GUI was created using [Gio](https://gioui.org/). Gio supports a variety of platforms, including browsers, but this
 application was designed to be used as a desktop application only.
 
-> Note: This application should work on Windows, Linux, and macOS systems, but has only been tested on Windows.
-
 <p align="center">
    <img src="https://github.com/cameronkinsella/manga-translator/blob/master/images/example-translation.gif?raw=true"  alt="Example Translation"/>
    <br/>
