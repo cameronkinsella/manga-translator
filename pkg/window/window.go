@@ -32,6 +32,18 @@ type textBlocks struct {
 	ok       bool
 }
 
+type ImageInfo struct {
+	Image      *image.RGBA
+	Path       string // Can be the local path or a URL.
+	Hash       string
+	Dimensions imageW.Dimensions
+}
+
+type Options struct {
+	Url  bool // If the image is from a URL.
+	Clip bool // If the image is in the clipboard. Takes priority over "Url" option if true.
+}
+
 // Colors
 var (
 	DarkGray  = color.NRGBA{R: 0x2B, G: 0x2B, B: 0x2B, A: 0xFF}
@@ -39,8 +51,8 @@ var (
 	LightGray = color.NRGBA{R: 0xCF, G: 0xCF, B: 0xCF, A: 0xFF}
 )
 
-// DrawFrame squares with labels, buttons control labels. "url" states if the given imgPath is a URL or not.
-func DrawFrame(w *app.Window, img *image.RGBA, imgPath, imgHash string, imgDims imageW.Dimensions, url, clip bool, cfg config.File) error {
+// DrawFrame squares with labels, buttons control labels.
+func DrawFrame(w *app.Window, imgInfo ImageInfo, options Options, cfg config.File) error {
 
 	// ops are the operations from the UI
 	var ops op.Ops
@@ -67,7 +79,7 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath, imgHash string, imgDims 
 	)
 
 	var txt textBlocks
-	go txt.getText(w, &cfg, &status, imgPath, imgHash, url, clip, &blocks, &blockButtons)
+	go txt.getText(w, &cfg, &status, imgInfo, options, &blocks, &blockButtons)
 
 	// Listen for events in the window.
 	for {
@@ -112,7 +124,7 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath, imgHash string, imgDims 
 							imgWidget := widget.Image{
 								Fit:      widget.Contain,
 								Position: layout.Center,
-								Src:      paint.NewImageOp(img),
+								Src:      paint.NewImageOp(imgInfo.Image),
 							}.Layout(gtx)
 
 							// Add text blocks on top of the image widget.
@@ -120,7 +132,7 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath, imgHash string, imgDims 
 
 							if txt.finished {
 								for i, block := range blocks {
-									blockWidgets = append(blockWidgets, blockBox(imgWidget, imgDims, block, &blockButtons[i]))
+									blockWidgets = append(blockWidgets, blockBox(imgWidget, imgInfo.Dimensions, block, &blockButtons[i]))
 								}
 							}
 
@@ -158,10 +170,7 @@ func DrawFrame(w *app.Window, img *image.RGBA, imgPath, imgHash string, imgDims 
 }
 
 // getText performs text detection and translation for the given image and creates text block widgets for each of the text blocks.
-// The `url` parameter can be used to specify if the given imgPath is a URL.
-// The `clip` parameter overrides the `url` parameter if true. It allows the imgPath to be ignored in favor of the image in your clipboard.
-// The `imgHash` parameter can be provided to skip annotations and translations if the hash is found in mtl-cache.bin
-func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, imgPath, imgHash string, url, clip bool, blocks *[]detect.TextBlock, blockButtons *[]widget.Clickable) {
+func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, imgInfo ImageInfo, options Options, blocks *[]detect.TextBlock, blockButtons *[]widget.Clickable) {
 	// Signal goroutine death and update frame when finished.
 	defer func() {
 		t.finished = true
@@ -171,18 +180,18 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, im
 
 	var blankCfg config.File
 
-	// If the config is blank/doesn't exist, skip all steps and
+	// If the config is blank/doesn't exist, skip all steps and show error message.
 	if *cfg == blankCfg {
 		*status = `Your config is either blank or doesn't exist, run the "manga-translator-setup" application to create one.`
 		return
 	}
 	// See if the block info and translations are already cached.
-	*blocks = cache.Check(imgHash, cfg.Translation.SelectedService)
+	*blocks = cache.Check(imgInfo.Hash, cfg.Translation.SelectedService)
 
 	if *blocks == nil {
 		*status = `Detecting text...`
 		// Scan image, get text annotation.
-		annotation, err := detect.GetAnnotation(imgPath, url, clip)
+		annotation, err := detect.GetAnnotation(imgInfo.Path, options.Url, options.Clip)
 		if err != nil {
 			*blocks = []detect.TextBlock{}
 			*status = err.Error()
@@ -200,9 +209,19 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, im
 		// Translate the text with the service specified in the config.
 		var allTranslated []string
 		if cfg.Translation.SelectedService == "google" {
-			allTranslated, err = translate.GoogleTranslate(allOriginal, cfg.Translation.SourceLanguage, cfg.Translation.TargetLanguage, cfg.Translation.Google.APIKey)
+			allTranslated, err = translate.GoogleTranslate(
+				allOriginal,
+				cfg.Translation.SourceLanguage,
+				cfg.Translation.TargetLanguage,
+				cfg.Translation.Google.APIKey,
+			)
 		} else if cfg.Translation.SelectedService == "deepL" {
-			allTranslated, err = translate.DeepLTranslate(allOriginal, cfg.Translation.SourceLanguage, cfg.Translation.TargetLanguage, cfg.Translation.DeepL.APIKey)
+			allTranslated, err = translate.DeepLTranslate(
+				allOriginal,
+				cfg.Translation.SourceLanguage,
+				cfg.Translation.TargetLanguage,
+				cfg.Translation.DeepL.APIKey,
+			)
 		} else {
 			*status = `Your config does not have a valid selected service, run the "manga-translator-setup" application again.`
 			err = errors.New("no selected service")
@@ -211,12 +230,13 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, im
 			(*blocks)[i].Translated = txt
 		}
 		if err == nil {
-			cache.Add(imgHash, cfg.Translation.SelectedService, *blocks)
+			cache.Add(imgInfo.Hash, cfg.Translation.SelectedService, *blocks)
 		} else {
 			*status = allTranslated[0]
 			return
 		}
 	} else {
+		// Found in cache, we can skip annotation and translation.
 		for range *blocks {
 			*blockButtons = append(*blockButtons, widget.Clickable{})
 		}

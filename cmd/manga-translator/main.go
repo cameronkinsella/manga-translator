@@ -48,18 +48,30 @@ func main() {
 	if len(flag.Args()) == 0 && !*clipImagePtr {
 		log.Fatal("No path or URL given.")
 	}
-	var imageFile string
+	var imgPath string
 	if !*clipImagePtr {
-		imageFile = flag.Args()[0]
-		log.Infof("Selected Image: %v", imageFile)
+		imgPath = flag.Args()[0]
+		log.Infof("Selected Image: %v", imgPath)
 	}
 
-	mainImage, imgHash := imageW.Open(imageFile, *urlImagePtr, *clipImagePtr)
+	mainImage, imgHash := imageW.Open(imgPath, *urlImagePtr, *clipImagePtr)
 	hashInBytes := imgHash.Sum(nil)
 	imgHashStr := hex.EncodeToString(hashInBytes)
 	log.Debugf("hash: %v", imgHashStr)
 	dims := imageW.GetDimensions(mainImage)
 	log.Debugf("Image Dimensions: %v", dims)
+
+	img := window.ImageInfo{
+		Image:      mainImage,
+		Path:       imgPath,
+		Hash:       imgHashStr,
+		Dimensions: dims,
+	}
+
+	options := window.Options{
+		Url:  *urlImagePtr,
+		Clip: *clipImagePtr,
+	}
 
 	// We need this ratio to scale the image down/up to the required starting size.
 	ratio := imageW.GetRatio(dims, maxDim)
@@ -72,7 +84,7 @@ func main() {
 			app.MinSize(unit.Dp(600), unit.Dp(300)),
 		)
 
-		if err := window.DrawFrame(w, mainImage, imageFile, imgHashStr, dims, *urlImagePtr, *clipImagePtr, cfg); err != nil {
+		if err := window.DrawFrame(w, img, options, cfg); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)
