@@ -1,12 +1,8 @@
 build-all: windows-amd64 windows-386 linux-amd64 linux-386 darwin-amd64 darwin-arm64
 
 windows-amd64:
-	GOOS=windows GOARCH=amd64 go build -v -o windows-amd64/ -ldflags -H=windowsgui ../cmd/manga-translator
-	GOOS=windows GOARCH=amd64 go build -v -o windows-amd64/ ../cmd/manga-translator-setup
-
-windows-386:
-	GOOS=windows GOARCH=386 go build -v -o windows-386/ -ldflags -H=windowsgui ../cmd/manga-translator
-	GOOS=windows GOARCH=386 go build -v -o windows-386/ ../cmd/manga-translator-setup
+	go run gioui.org/cmd/gogio@latest -target windows -icon ../images/app.png -o ./windows-amd64/manga-translator.exe ../cmd/manga-translator
+	go run gioui.org/cmd/gogio@latest -target windows -icon ../images/gear.png -o ./windows-amd64/manga-translator-setup.exe -ldflags -H="" ../cmd/manga-translator-setup
 
 linux-amd64:
 	GOOS=linux GOARCH=amd64 go build -v -o linux-amd64/ ../cmd/manga-translator
