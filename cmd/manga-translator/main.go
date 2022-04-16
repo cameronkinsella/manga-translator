@@ -45,24 +45,30 @@ func main() {
 	if len(flag.Args()) == 0 && !*clipImagePtr {
 		log.Fatal("No path or URL given.")
 	}
-	var imgPath string
+	var imgPath []string
 	if !*clipImagePtr {
-		imgPath = flag.Args()[0]
-		log.Infof("Selected Image: %v", imgPath)
+		imgPath = flag.Args()
+		log.Infof("All Selected Image(s): %v", imgPath)
 	}
 
-	mainImage, imgHash := imageW.Open(imgPath, *urlImagePtr, *clipImagePtr)
-	hashInBytes := imgHash.Sum(nil)
-	imgHashStr := hex.EncodeToString(hashInBytes)
-	log.Debugf("hash: %v", imgHashStr)
-	dims := imageW.GetDimensions(mainImage)
-	log.Debugf("Image Dimensions: %v", dims)
+	var img []window.ImageInfo
 
-	img := window.ImageInfo{
-		Image:      mainImage,
-		Path:       imgPath,
-		Hash:       imgHashStr,
-		Dimensions: dims,
+	for _, imgPath := range imgPath {
+		log.Debugf("Getting image info for: %v", imgPath)
+		imgFile, imgHash := imageW.Open(imgPath, *urlImagePtr, *clipImagePtr)
+		hashInBytes := imgHash.Sum(nil)
+		imgHashStr := hex.EncodeToString(hashInBytes)
+		log.Debugf("Hash: %v", imgHashStr)
+		dims := imageW.GetDimensions(imgFile)
+		log.Debugf("Image Dimensions: %v", dims)
+
+		newImage := window.ImageInfo{
+			Image:      imgFile,
+			Path:       imgPath,
+			Hash:       imgHashStr,
+			Dimensions: dims,
+		}
+		img = append(img, newImage)
 	}
 
 	options := window.Options{
@@ -71,13 +77,13 @@ func main() {
 	}
 
 	// We need this ratio to scale the image down/up to the required starting size.
-	ratio := imageW.GetRatio(dims, maxDim)
+	ratio := imageW.GetRatio(img[0].Dimensions, maxDim)
 
 	go func() {
 		// Create new window.
 		w := app.NewWindow(
 			app.Title("Manga Translator"),
-			app.Size(unit.Dp(ratio*dims.Width), unit.Dp(ratio*dims.Height)),
+			app.Size(unit.Dp(ratio*img[0].Dimensions.Width), unit.Dp(ratio*img[0].Dimensions.Height)),
 			app.MinSize(unit.Dp(600), unit.Dp(300)),
 		)
 

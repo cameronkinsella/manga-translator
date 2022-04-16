@@ -24,4 +24,4 @@ jobs:
           goarch: ${{ matrix.goarch }}
           project_path: ./build/
           build_command: make ${{ matrix.goos }}-${{ matrix.goarch }} && mv ./${{ matrix.goos }}-${{ matrix.goarch }}/* ${BUILD_ARTIFACTS_FOLDER}/
-          extra_files: ./scripts/${{ matrix.goos }}/*
+          extra_files: ./dist/${{ matrix.goos }}/*

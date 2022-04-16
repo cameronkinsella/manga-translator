@@ -21,16 +21,21 @@ import (
 
 // textBlocks indicates that status of the text detection and translation process.
 type textBlocks struct {
-	finished bool // Is true the process is complete.
-	ok       bool // Is true the process did not encounter any errors.
+	status   string // Loading status
+	loading  bool   // Is true if the process is in progress.
+	finished bool   // Is true the process is complete.
+	ok       bool   // Is true the process did not encounter any errors.
 }
 
 // getText performs text detection and translation for the given image and creates text block widgets for each of the text blocks.
-func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, imgInfo ImageInfo, options Options, blocks *[]detect.TextBlock, blockButtons *[]widget.Clickable) {
+func (t *textBlocks) getText(w *app.Window, cfg *config.File, imgInfo ImageInfo, options Options, blocks *[]detect.TextBlock, blockButtons *[]widget.Clickable) {
+	t.loading = true
+
 	// Signal goroutine death and update frame when finished.
 	defer func() {
+		t.loading = false
 		t.finished = true
-		t.ok = *status == `Done!`
+		t.ok = t.status == `Done!`
 		w.Invalidate()
 	}()
 
@@ -38,22 +43,22 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, im
 
 	// If the config is blank/doesn't exist, skip all steps and show error message.
 	if *cfg == blankCfg {
-		*status = `Your config is either blank or doesn't exist, run the "manga-translator-setup" application to create one.`
+		t.status = `Your config is either blank or doesn't exist, run the "manga-translator-setup" application to create one.`
 		return
 	}
 	// See if the block info and translations are already cached.
 	*blocks = cache.Check(imgInfo.Hash, cfg.Translation.SelectedService)
 
 	if *blocks == nil {
-		*status = `Detecting text...`
+		t.status = `Detecting text...`
 		// Scan image, get text annotation.
 		annotation, err := detect.GetAnnotation(imgInfo.Path, options.Url, options.Clip)
 		if err != nil {
 			*blocks = []detect.TextBlock{}
-			*status = err.Error()
+			t.status = err.Error()
 			return
 		}
-		*status = `Translating text...`
+		t.status = `Translating text...`
 		// For each text block, create a new block button and add its text to allOriginal
 		var allOriginal []string
 		*blocks = detect.OrganizeAnnotation(annotation)
@@ -79,7 +84,7 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, im
 				cfg.Translation.DeepL.APIKey,
 			)
 		} else {
-			*status = `Your config does not have a valid selected service, run the "manga-translator-setup" application again.`
+			t.status = `Your config does not have a valid selected service, run the "manga-translator-setup" application again.`
 			err = errors.New("no selected service")
 		}
 		for i, txt := range allTranslated {
@@ -88,7 +93,7 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, im
 		if err == nil {
 			cache.Add(imgInfo.Hash, cfg.Translation.SelectedService, *blocks)
 		} else {
-			*status = allTranslated[0]
+			t.status = allTranslated[0]
 			return
 		}
 	} else {
@@ -97,7 +102,7 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, im
 			*blockButtons = append(*blockButtons, widget.Clickable{})
 		}
 	}
-	*status = `Done!`
+	t.status = `Done!`
 }
 
 // blockBox creates a clickable box around the given text block, and returns the widget in a StackChild.

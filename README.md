@@ -4,9 +4,8 @@ An easy-to-use application for translating text in images in many languages.
 
 The GUI was created using [Gio](https://gioui.org/). Gio supports a variety of platforms, including browsers, but this
 application was designed to be used as a desktop application only.
-
 <p align="center">
-   <img src="https://github.com/cameronkinsella/manga-translator/blob/master/images/example-translation.gif?raw=true"  alt="Example Translation"/>
+   <img src="./images/example-translation.gif"  alt="Example Translation"/>
    <br/>
    <cite>Image source: うずまき 1巻</cite>
 </p>
@@ -93,19 +92,18 @@ Do one of the following:
 ### Command
 
 ```
-Usage: manga-translator.exe [OPTIONS] [IMAGE_LOCATION]
+Usage: manga-translator.exe [OPTIONS] [IMAGE_LOCATION] [IMAGE_LOCATION]...
 
 
 Arguments:
   IMAGE_LOCATION   The path or URL of the image (not required if using -clip option).
 
 Options:
-  -url             Use an image from a URL instead of a local file.
+  -url             Use images from URLs instead of local files.
   -clip            Use an image from your clipboard.
 ```
 
-> Note: You can also open images with the `manga-translator` application itself
-(on Windows, you can quickly do this by dragging the image on top of `manga-translator.exe`)
+> Note: On Windows you can also open it by dragging images on top of `manga-translator.exe`
 
 ### GUI
 
@@ -113,6 +111,8 @@ Coloured boxes will appear around all the text that was detected. Click on those
 the translation of that text.
 
 You can click on the text in the "Original Text" or "Translated Text" sections to copy that text to your clipboard.
+
+If you selected multiple images, you can navigate through them using the left and right arrow keys or the A and D keys.
 
 [shell_img]: https://gstatic.com/cloudssh/images/open-btn.png
 

@@ -4,6 +4,7 @@ import (
 	"gioui.org/app"
 	"gioui.org/font/gofont"
 	"gioui.org/font/opentype"
+	"gioui.org/io/key"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -45,8 +46,10 @@ var (
 	LightGray = color.NRGBA{R: 0xCF, G: 0xCF, B: 0xCF, A: 0xFF}
 )
 
+var preLoadPages = 2 // hard-coded
+
 // DrawFrame squares with labels, buttons control labels.
-func DrawFrame(w *app.Window, imgInfo ImageInfo, options Options, cfg config.File) error {
+func DrawFrame(w *app.Window, imgInfo []ImageInfo, options Options, cfg config.File) error {
 
 	// ops are the operations from the UI.
 	var ops op.Ops
@@ -54,8 +57,17 @@ func DrawFrame(w *app.Window, imgInfo ImageInfo, options Options, cfg config.Fil
 	// split is the primary application widget containing the image, translation widget, and adjustment bar.
 	var split = VSplit{Ratio: 0.60}
 
-	// Button widgets which will be placed over the text blocks.
-	var blockButtons []widget.Clickable
+	var pages pageList
+	for _, img := range imgInfo {
+		pages.append(img)
+	}
+	log.Debugf("Number of pages loaded: %d", pages.len)
+	// Always start with first page.
+	pages.current = pages.head
+
+	// Start loading pages.
+	go pages.current.load(w, &cfg, options)
+	go pages.current.preLoad(preLoadPages, w, &cfg, options)
 
 	// Button widgets which will be placed over the translation widget for copying text to clipboard.
 	var (
@@ -69,15 +81,9 @@ func DrawFrame(w *app.Window, imgInfo ImageInfo, options Options, cfg config.Fil
 	th := material.NewTheme(fonts)
 
 	var (
-		txt       textBlocks
-		blocks    []detect.TextBlock
-		status    string // Loading status
 		selectedO string // Original text
 		selectedT string // Translated text
 	)
-
-	// Asynchronously detect and translate text.
-	go txt.getText(w, &cfg, &status, imgInfo, options, &blocks, &blockButtons)
 
 	// Listen for events in the window.
 	for {
@@ -90,8 +96,8 @@ func DrawFrame(w *app.Window, imgInfo ImageInfo, options Options, cfg config.Fil
 				gtx := layout.NewContext(&ops, e)
 
 				// Handle when any of the blocks are clicked.
-				for i, b := range blocks {
-					if blockButtons[i].Clicked() {
+				for i, b := range pages.current.blocks {
+					if pages.current.blockButtons[i].Clicked() {
 						log.Debugf("Clicked Block %d", i)
 						selectedO = b.Text
 						selectedT = b.Translated
@@ -112,18 +118,89 @@ func DrawFrame(w *app.Window, imgInfo ImageInfo, options Options, cfg config.Fil
 
 				// Application
 				split.Layout(gtx, func(gtx C) D {
-					return imageWidget(gtx, txt, imgInfo, blocks, blockButtons)
+					return imageWidget(gtx, pages.current.text, pages.current.image, pages.current.blocks, pages.current.blockButtons)
 				}, func(gtx C) D {
-					return translatorPanelWidget(gtx, th, txt, originalBtn, translatedBtn, status, selectedO, selectedT)
+					return translatorPanelWidget(gtx, th, pages.current.text, originalBtn, translatedBtn, pages.current.text.status, selectedO, selectedT)
 				})
 				e.Frame(gtx.Ops)
 
+			// This is sent when a key is pressed.
+			case key.Event:
+				if e.State == key.Press {
+					if (e.Name == "→" || e.Name == "D") && pages.current.next != nil {
+						pages.current = pages.current.next
+						selectedO, selectedT = "", ""
+						go pages.current.preLoad(preLoadPages, w, &cfg, options)
+						w.Invalidate()
+					} else if (e.Name == "←" || e.Name == "A") && pages.current.prev != nil {
+						pages.current = pages.current.prev
+						selectedO, selectedT = "", ""
+						w.Invalidate()
+					}
+				}
 			// This is sent when the application window is closed.
 			case system.DestroyEvent:
 				return e.Err
 			}
 		}
 	}
+}
+
+// page is a pageList node which includes all necessary info to display an image and its translation.
+type page struct {
+	image        ImageInfo
+	blocks       []detect.TextBlock
+	blockButtons []widget.Clickable // Button widgets which will be placed over the text blocks.
+	text         textBlocks
+	next         *page
+	prev         *page
+}
+
+// load fetches the text annotations and translations for page.
+func (p *page) load(w *app.Window, cfg *config.File, options Options) {
+	// Only fetch if page is not already loading or finished.
+	if !p.text.loading && !p.text.finished {
+		// Detect and translate text.
+		p.text.getText(w, cfg, p.image, options, &p.blocks, &p.blockButtons)
+	}
+}
+
+// preLoad loads the given number of pages after the current page.
+func (p *page) preLoad(num int, w *app.Window, cfg *config.File, options Options) {
+	cur := p.next
+	for i := 0; i < num && cur != nil; i++ {
+		// Asynchronously detect and translate text.
+		go cur.load(w, cfg, options)
+		cur = cur.next
+	}
+}
+
+// pageList is a doubly linked list consisting of page objects.
+type pageList struct {
+	len     int
+	current *page
+	head    *page
+	tail    *page
+}
+
+// append adds a new page with the given image info to the end of the pageList.
+func (p *pageList) append(imgInfo ImageInfo) {
+	newPage := &page{
+		image: imgInfo,
+	}
+	if p.head == nil {
+		p.head = newPage
+		p.tail = newPage
+	} else {
+		currentPage := p.head
+		for currentPage.next != nil {
+			currentPage = currentPage.next
+		}
+		newPage.prev = currentPage
+		currentPage.next = newPage
+		p.tail = newPage
+	}
+	p.len++
 }
 
 func imageWidget(gtx C, txt textBlocks, imgInfo ImageInfo, blocks []detect.TextBlock, blockButtons []widget.Clickable) D {

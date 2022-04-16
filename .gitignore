@@ -35,3 +35,4 @@ build/darwin*/
 
 # Generated files
 mtl/
+*.syso
