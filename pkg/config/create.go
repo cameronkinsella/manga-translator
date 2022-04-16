@@ -102,10 +102,10 @@ func Create(modify bool) {
 	updateLang := false
 
 	// Set which service we will be using
-	if newConfig.Translation.DeepL.APIKey == "" {
+	if !modify && newConfig.Translation.DeepL.APIKey == "" {
 		// Only Google key or no API keys
 		newConfig.Translation.SelectedService = "google"
-	} else if newConfig.Translation.Google.APIKey == "" {
+	} else if !modify && newConfig.Translation.Google.APIKey == "" {
 		// Only DeepL key
 		newConfig.Translation.SelectedService = "deepL"
 	} else {
@@ -388,7 +388,7 @@ func modifyConfirmation(msg string) bool {
 	var response string
 
 	for !(response == "yes" || response == "no") {
-		fmt.Println(msg + "(yes/no):")
+		fmt.Println(msg + " (yes/no):")
 		reader := bufio.NewReader(os.Stdin)
 		response, _ = reader.ReadString('\n')
 		response = strings.TrimSuffix(response, "\r\n")
