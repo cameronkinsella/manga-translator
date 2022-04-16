@@ -17,16 +17,15 @@ import (
 // but that behavior is not desirable for this application, so it was modified.
 // TODO find a more elegant solution for this.
 
-// TODO gioui seems to drop pointer events if they occur while the pointer is outside the application window.
-//   this should be fixed.
+// TODO fix pointer.Leave events not being generated when the pointer leaves the application on Windows.
 
 // Clickable lays out a rectangular clickable widget without further
 // decoration.
-func Clickable(gtx layout.Context, button *widget.Clickable, hover bool, w layout.Widget) layout.Dimensions {
-	return button.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+func Clickable(gtx C, button *widget.Clickable, hover bool, w layout.Widget) D {
+	return button.Layout(gtx, func(gtx C) D {
 		semantic.Button.Add(gtx.Ops)
 		return layout.Stack{}.Layout(gtx,
-			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			layout.Expanded(func(gtx C) D {
 				defer clip.Rect{Max: gtx.Constraints.Min}.Push(gtx.Ops).Pop()
 				// pointer.Leave event is ignored if it happens outside the application window
 				// (if the clickable is on the edge of the application). This causes the hover highlight to not go away
@@ -38,14 +37,14 @@ func Clickable(gtx layout.Context, button *widget.Clickable, hover bool, w layou
 				for _, c := range button.History() {
 					drawInk(gtx, c)
 				}
-				return layout.Dimensions{Size: gtx.Constraints.Min}
+				return D{Size: gtx.Constraints.Min}
 			}),
 			layout.Stacked(w),
 		)
 	})
 }
 
-func drawInk(gtx layout.Context, c widget.Press) {
+func drawInk(gtx C, c widget.Press) {
 	// duration is the number of seconds for the
 	// completed animation: expand while fading in, then
 	// out.

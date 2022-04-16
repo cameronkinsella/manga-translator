@@ -1,9 +1,7 @@
 package window
 
 import (
-	"errors"
 	"gioui.org/app"
-	"gioui.org/f32"
 	"gioui.org/font/gofont"
 	"gioui.org/font/opentype"
 	"gioui.org/io/system"
@@ -12,25 +10,21 @@ import (
 	gclip "gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
-	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
-	"github.com/cameronkinsella/manga-translator/pkg/cache"
 	"github.com/cameronkinsella/manga-translator/pkg/config"
 	"github.com/cameronkinsella/manga-translator/pkg/detect"
 	imageW "github.com/cameronkinsella/manga-translator/pkg/image"
-	"github.com/cameronkinsella/manga-translator/pkg/translate"
 	"github.com/gonoto/notosans"
 	log "github.com/sirupsen/logrus"
 	"image"
 	"image/color"
-	"math"
 )
 
-type textBlocks struct {
-	finished bool
-	ok       bool
-}
+type (
+	D = layout.Dimensions
+	C = layout.Context
+)
 
 type ImageInfo struct {
 	Image      *image.RGBA
@@ -54,8 +48,11 @@ var (
 // DrawFrame squares with labels, buttons control labels.
 func DrawFrame(w *app.Window, imgInfo ImageInfo, options Options, cfg config.File) error {
 
-	// ops are the operations from the UI
+	// ops are the operations from the UI.
 	var ops op.Ops
+
+	// split is the primary application widget containing the image, translation widget, and adjustment bar.
+	var split = VSplit{Ratio: 0.60}
 
 	// Button widgets which will be placed over the text blocks.
 	var blockButtons []widget.Clickable
@@ -72,13 +69,14 @@ func DrawFrame(w *app.Window, imgInfo ImageInfo, options Options, cfg config.Fil
 	th := material.NewTheme(fonts)
 
 	var (
+		txt       textBlocks
 		blocks    []detect.TextBlock
 		status    string // Loading status
 		selectedO string // Original text
 		selectedT string // Translated text
 	)
 
-	var txt textBlocks
+	// Asynchronously detect and translate text.
 	go txt.getText(w, &cfg, &status, imgInfo, options, &blocks, &blockButtons)
 
 	// Listen for events in the window.
@@ -113,52 +111,11 @@ func DrawFrame(w *app.Window, imgInfo ImageInfo, options Options, cfg config.Fil
 				})
 
 				// Application
-				layout.Flex{
-					Axis:    layout.Vertical,
-					Spacing: layout.SpaceEnd,
-				}.Layout(gtx,
-					// Image
-					layout.Rigid(func(gtx C) D {
-						return layout.Center.Layout(gtx, func(gtx C) D {
-							gtx.Constraints.Max.Y -= 200
-							imgWidget := widget.Image{
-								Fit:      widget.Contain,
-								Position: layout.Center,
-								Src:      paint.NewImageOp(imgInfo.Image),
-							}.Layout(gtx)
-
-							// Add text blocks on top of the image widget.
-							var blockWidgets []layout.StackChild
-
-							if txt.finished {
-								for i, block := range blocks {
-									blockWidgets = append(blockWidgets, blockBox(imgWidget, imgInfo.Dimensions, block, &blockButtons[i]))
-								}
-							}
-
-							layout.Stack{}.Layout(gtx, blockWidgets...)
-
-							return imgWidget
-						},
-						)
-					}),
-					// Translation panel
-					layout.Rigid(
-						func(gtx C) D {
-							if !txt.finished || !txt.ok {
-								return translatorWidget(gtx, th, originalBtn, status, "Loading...")
-							} else {
-								var split Split
-
-								return split.Layout(gtx, func(gtx C) D {
-									return translatorWidget(gtx, th, originalBtn, selectedO, "Original Text")
-								}, func(gtx C) D {
-									return translatorWidget(gtx, th, translatedBtn, selectedT, "Translated Text")
-								})
-							}
-						},
-					),
-				)
+				split.Layout(gtx, func(gtx C) D {
+					return imageWidget(gtx, txt, imgInfo, blocks, blockButtons)
+				}, func(gtx C) D {
+					return translatorPanelWidget(gtx, th, txt, originalBtn, translatedBtn, status, selectedO, selectedT)
+				})
 				e.Frame(gtx.Ops)
 
 			// This is sent when the application window is closed.
@@ -169,142 +126,54 @@ func DrawFrame(w *app.Window, imgInfo ImageInfo, options Options, cfg config.Fil
 	}
 }
 
-// getText performs text detection and translation for the given image and creates text block widgets for each of the text blocks.
-func (t *textBlocks) getText(w *app.Window, cfg *config.File, status *string, imgInfo ImageInfo, options Options, blocks *[]detect.TextBlock, blockButtons *[]widget.Clickable) {
-	// Signal goroutine death and update frame when finished.
-	defer func() {
-		t.finished = true
-		t.ok = *status == `Done!`
-		w.Invalidate()
-	}()
+func imageWidget(gtx C, txt textBlocks, imgInfo ImageInfo, blocks []detect.TextBlock, blockButtons []widget.Clickable) D {
+	return layout.Center.Layout(gtx, func(gtx C) D {
+		imgWidget := widget.Image{
+			Fit:      widget.Contain,
+			Position: layout.Center,
+			Src:      paint.NewImageOp(imgInfo.Image),
+		}.Layout(gtx)
 
-	var blankCfg config.File
+		// Add text blocks on top of the image widget.
+		var blockWidgets []layout.StackChild
 
-	// If the config is blank/doesn't exist, skip all steps and show error message.
-	if *cfg == blankCfg {
-		*status = `Your config is either blank or doesn't exist, run the "manga-translator-setup" application to create one.`
-		return
-	}
-	// See if the block info and translations are already cached.
-	*blocks = cache.Check(imgInfo.Hash, cfg.Translation.SelectedService)
-
-	if *blocks == nil {
-		*status = `Detecting text...`
-		// Scan image, get text annotation.
-		annotation, err := detect.GetAnnotation(imgInfo.Path, options.Url, options.Clip)
-		if err != nil {
-			*blocks = []detect.TextBlock{}
-			*status = err.Error()
-			return
-		}
-		*status = `Translating text...`
-		// For each text block, create a new block button and add its text to allOriginal
-		var allOriginal []string
-		*blocks = detect.OrganizeAnnotation(annotation)
-		for _, block := range *blocks {
-			*blockButtons = append(*blockButtons, widget.Clickable{})
-			allOriginal = append(allOriginal, block.Text)
-		}
-
-		// Translate the text with the service specified in the config.
-		var allTranslated []string
-		if cfg.Translation.SelectedService == "google" {
-			allTranslated, err = translate.GoogleTranslate(
-				allOriginal,
-				cfg.Translation.SourceLanguage,
-				cfg.Translation.TargetLanguage,
-				cfg.Translation.Google.APIKey,
-			)
-		} else if cfg.Translation.SelectedService == "deepL" {
-			allTranslated, err = translate.DeepLTranslate(
-				allOriginal,
-				cfg.Translation.SourceLanguage,
-				cfg.Translation.TargetLanguage,
-				cfg.Translation.DeepL.APIKey,
-			)
-		} else {
-			*status = `Your config does not have a valid selected service, run the "manga-translator-setup" application again.`
-			err = errors.New("no selected service")
-		}
-		for i, txt := range allTranslated {
-			(*blocks)[i].Translated = txt
-		}
-		if err == nil {
-			cache.Add(imgInfo.Hash, cfg.Translation.SelectedService, *blocks)
-		} else {
-			*status = allTranslated[0]
-			return
-		}
-	} else {
-		// Found in cache, we can skip annotation and translation.
-		for range *blocks {
-			*blockButtons = append(*blockButtons, widget.Clickable{})
-		}
-	}
-	*status = `Done!`
-}
-
-// blockBox creates a clickable box around the given text block, and returns the widget in a StackChild.
-func blockBox(img D, originalDims imageW.Dimensions, block detect.TextBlock, btn *widget.Clickable) layout.StackChild {
-	return layout.Stacked(
-		func(gtx C) D {
-			// The vertices are for the block locations when the image is at full size.
-			// To determine how much we should shrink/expand the boxes to maintain their correct position on
-			// the image widget, we must find a ratio multiplier.
-			ratio := imageW.GetRatio(originalDims, float32(math.Max(float64(img.Size.X), float64(img.Size.Y))))
-
-			// Offset boxes so they start in the correct position.
-			op.Offset(
-				f32.Pt(float32(block.Vertices[0].X)*ratio,
-					float32(block.Vertices[0].Y)*ratio),
-			).Add(gtx.Ops)
-
-			// Limit box size to ensure it stays in the area it's supposed to be in.
-			boxSizeX := float32(block.Vertices[1].X - block.Vertices[0].X)
-			boxSizeY := float32(block.Vertices[2].Y - block.Vertices[1].Y)
-			gtx.Constraints.Max = image.Point{
-				X: int(boxSizeX * ratio),
-				Y: int(boxSizeY * ratio),
+		if txt.finished {
+			for i, block := range blocks {
+				blockWidgets = append(blockWidgets, blockBox(imgWidget, imgInfo.Dimensions, block, &blockButtons[i]))
 			}
+		}
 
-			// Create box, filled with semi-transparent color.
-			box := func(gtx C) D {
-				area := gclip.Rect{
-					Max: image.Point{
-						X: int(boxSizeX * ratio),
-						Y: int(boxSizeY * ratio),
-					},
-				}.Push(gtx.Ops)
+		layout.Stack{}.Layout(gtx, blockWidgets...)
 
-				fillColor := block.Color
-				fillColor.A = 0x40
-				paint.ColorOp{Color: fillColor}.Add(gtx.Ops)
-				paint.PaintOp{}.Add(gtx.Ops)
-				defer area.Pop()
-				return D{Size: gtx.Constraints.Max}
-			}
-
-			// Add opaque border around box.
-			borderedBox := func(gtx C) D {
-				return widget.Border{
-					Color:        block.Color,
-					CornerRadius: unit.Dp(1),
-					Width:        unit.Dp(2),
-				}.Layout(gtx, box)
-			}
-
-			return Clickable(gtx, btn, true, borderedBox)
-		},
+		return imgWidget
+	},
 	)
 }
 
+// translatorPanelWidget is the full translation panel containing either the original text and translation or the current status.
+func translatorPanelWidget(gtx C, th *material.Theme, txt textBlocks, originalBtn, translatedBtn *widget.Clickable, status, selectedO, selectedT string) D {
+	if !txt.finished {
+		return translatorWidget(gtx, th, originalBtn, status, "Loading...")
+	} else if !txt.ok {
+		return translatorWidget(gtx, th, originalBtn, status, "Error")
+	} else {
+		var tlSplit HSplit
+
+		return tlSplit.Layout(gtx, func(gtx C) D {
+			return translatorWidget(gtx, th, originalBtn, selectedO, "Original Text")
+		}, func(gtx C) D {
+			return translatorWidget(gtx, th, translatedBtn, selectedT, "Translated Text")
+		})
+	}
+}
+
 // colorBox creates a widget with the specified dimensions and color.
-func colorBox(gtx layout.Context, size image.Point, color color.NRGBA) layout.Dimensions {
+func colorBox(gtx C, size image.Point, color color.NRGBA) D {
 	area := gclip.Rect{Max: size}.Push(gtx.Ops)
 	paint.ColorOp{Color: color}.Add(gtx.Ops)
 	paint.PaintOp{}.Add(gtx.Ops)
 	area.Pop()
-	return layout.Dimensions{Size: size}
+	return D{Size: size}
 }
 
 // appendOTC adds the given OpenType font to the given font collection
