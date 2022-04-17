@@ -9,6 +9,7 @@ import (
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"image"
+	"runtime"
 )
 
 // VSplit is a custom layout with two widgets of adjustable size separated by a draggable horizontal bar.
@@ -19,6 +20,8 @@ type VSplit struct {
 	// Bar is the width for resizing the layout
 	Bar unit.Value
 
+	press  bool
+	hover  bool
 	drag   bool
 	dragID pointer.ID
 	dragY  float32
@@ -26,7 +29,7 @@ type VSplit struct {
 
 var defaultBarWidth = unit.Dp(20) // hard-coded
 
-func (s *VSplit) Layout(gtx C, left, right layout.Widget) D {
+func (s *VSplit) Layout(gtx C, top, bottom layout.Widget) D {
 	bar := gtx.Px(s.Bar)
 	if bar <= 1 {
 		bar = gtx.Px(defaultBarWidth)
@@ -38,54 +41,21 @@ func (s *VSplit) Layout(gtx C, left, right layout.Widget) D {
 	bottomOffset := topSize + bar
 	bottomSize := gtx.Constraints.Max.Y - bottomOffset
 
-	{ // handle input
-		for _, ev := range gtx.Events(s) {
-			e, ok := ev.(pointer.Event)
-			if !ok {
-				continue
-			}
+	// Register whole widget for release input, in case the bar is released outside its area.
+	pointer.InputOp{Tag: &s,
+		Types: pointer.Release,
+	}.Add(gtx.Ops)
 
-			switch e.Type {
-			case pointer.Press:
-				if s.drag {
-					break
-				}
+	s.handleInputs(gtx)
 
-				s.dragID = e.PointerID
-				s.dragY = e.Position.Y
-
-			case pointer.Drag:
-				if s.dragID != e.PointerID {
-					break
-				}
-
-				deltaY := e.Position.Y - s.dragY
-				s.dragY = e.Position.Y
-
-				deltaRatio := deltaY * 2 / float32(gtx.Constraints.Max.Y)
-
-				if s.Ratio+deltaRatio > 0.75 {
-					s.Ratio = 0.75
-				} else if s.Ratio+deltaRatio < -0.75 {
-					s.Ratio = -0.75
-				} else {
-					s.Ratio += deltaRatio
-				}
-
-			case pointer.Release:
-				fallthrough
-			case pointer.Cancel:
-				s.drag = false
-			}
-		}
-
+	{
 		// Register for input.
 		barRect := image.Rect(0, topSize, gtx.Constraints.Max.X, bottomOffset)
 		area := clip.Rect(barRect).Push(gtx.Ops)
 		paint.ColorOp{Color: LightGray}.Add(gtx.Ops)
 		paint.PaintOp{}.Add(gtx.Ops)
 		pointer.InputOp{Tag: s,
-			Types: pointer.Press | pointer.Drag | pointer.Release,
+			Types: pointer.Press | pointer.Drag | pointer.Release | pointer.Enter | pointer.Leave,
 			Grab:  s.drag,
 		}.Add(gtx.Ops)
 		area.Pop()
@@ -104,24 +74,93 @@ func (s *VSplit) Layout(gtx C, left, right layout.Widget) D {
 	{
 		gtx := gtx
 		gtx.Constraints = layout.Exact(image.Pt(gtx.Constraints.Max.X, topSize))
-		left(gtx)
+		top(gtx)
 	}
 
 	{
 		gtx := gtx
 		off := op.Offset(f32.Pt(0, float32(bottomOffset))).Push(gtx.Ops)
 		gtx.Constraints = layout.Exact(image.Pt(gtx.Constraints.Max.X, bottomSize))
-		right(gtx)
+		bottom(gtx)
 		off.Pop()
 	}
 
 	return D{Size: gtx.Constraints.Max}
 }
 
+func (s *VSplit) handleInputs(gtx C) {
+	for _, ev := range gtx.Events(s) {
+		e, ok := ev.(pointer.Event)
+		if !ok {
+			continue
+		}
+
+		switch e.Type {
+		case pointer.Press:
+			if s.drag {
+				break
+			}
+
+			s.press = true
+			s.dragID = e.PointerID
+			s.dragY = e.Position.Y
+
+		case pointer.Drag:
+			if s.dragID != e.PointerID {
+				break
+			}
+
+			deltaY := e.Position.Y - s.dragY
+			s.dragY = e.Position.Y
+
+			deltaRatio := deltaY * 2 / float32(gtx.Constraints.Max.Y)
+
+			// Widget height can be max 87.5% of the window height.
+			if s.Ratio+deltaRatio > 0.75 {
+				s.Ratio = 0.75
+			} else if s.Ratio+deltaRatio < -0.75 {
+				s.Ratio = -0.75
+			} else {
+				s.Ratio += deltaRatio
+			}
+		case pointer.Enter:
+			s.hover = true
+		case pointer.Leave:
+			s.hover = false
+		case pointer.Release:
+			fallthrough
+		case pointer.Cancel:
+			s.drag = false
+			s.press = false
+		}
+	}
+
+	// Define different pointers depending on OS.
+	var cursorGrab pointer.Cursor
+	var cursorHover pointer.Cursor
+	os := runtime.GOOS
+	if os == "darwin" {
+		// The grab icons on macOS look nice. :)
+		cursorGrab = pointer.CursorGrabbing
+		cursorHover = pointer.CursorGrab
+	} else {
+		cursorGrab = pointer.CursorRowResize
+		cursorHover = pointer.CursorRowResize
+	}
+
+	if s.press {
+		cursorGrab.Add(gtx.Ops)
+	} else if s.hover {
+		cursorHover.Add(gtx.Ops)
+	} else {
+		pointer.CursorDefault.Add(gtx.Ops)
+	}
+}
+
 // HSplit is a custom layout with two widgets of equal size separated by a vertical bar.
 type HSplit struct{}
 
-func (s HSplit) Layout(gtx C, left, right layout.Widget) D {
+func (s *HSplit) Layout(gtx C, left, right layout.Widget) D {
 	bar := gtx.Px(unit.Dp(10))
 
 	leftSize := (gtx.Constraints.Min.X - bar) / 2
