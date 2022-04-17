@@ -84,32 +84,32 @@ func Create(modify bool) {
 		}
 	}
 
-	// Google Cloud Vision API Key
+	// Google Cloud Vision API Key.
 	if !modify || modifyConfirmation("Would you like to change your Google Cloud Vision API Key?") {
 		setupVisionAPIKey(&newConfig)
 	}
 
-	// Google Cloud Translation API Key
+	// Google Cloud Translation API Key.
 	if !modify || modifyConfirmation("Would you like to change your Google Cloud Translation API Key?") {
 		setupGoogleAPIKey(&newConfig)
 	}
 
-	// DeepL Translation API Key
+	// DeepL Translation API Key.
 	if !modify || modifyConfirmation("Would you like to change your DeepL Translation configuration?") {
 		setupDeepLConfig(&newConfig)
 	}
 
 	updateLang := false
 
-	// Set which service we will be using
-	if !modify && newConfig.Translation.DeepL.APIKey == "" {
-		// Only Google key or no API keys
+	// Set which service we will be using.
+	if newConfig.Translation.DeepL.APIKey == "" {
+		// Only able to use Google.
+		if newConfig.Translation.SelectedService == "deepL" {
+			updateLang = true
+		}
 		newConfig.Translation.SelectedService = "google"
-	} else if !modify && newConfig.Translation.Google.APIKey == "" {
-		// Only DeepL key
-		newConfig.Translation.SelectedService = "deepL"
 	} else {
-		// Both Google key and DeepL key. Must choose which one to use.
+		// Able to use both Google and DeepL. Must choose which one to use.
 		if !modify || modifyConfirmation("Would you like to change which translation service you want to use?") {
 			prevService := newConfig.Translation.SelectedService
 			selectTLService(&newConfig)
@@ -130,12 +130,12 @@ func Create(modify bool) {
 		}
 	}
 
-	// Source language
+	// Source language.
 	if !modify || updateLang || modifyConfirmation("Would you like to change your source language?") {
 		setupSourceLanguage(&newConfig)
 	}
 
-	// Target language
+	// Target language.
 	if !modify || updateLang || modifyConfirmation("Would you like to change your target language?") {
 		setupTargetLanguage(&newConfig)
 	}
@@ -233,7 +233,7 @@ func setupSourceLanguage(config *File) {
 				fmt.Printf("%q: %s\n", i.Code, i.Language)
 			}
 			fmt.Println("")
-			defer setupSourceLanguage(config)
+			setupSourceLanguage(config)
 			return
 		}
 		screen.Clear()
@@ -267,7 +267,7 @@ func setupTargetLanguage(config *File) {
 				fmt.Printf("%q: %s\n", i.Code, i.Language)
 			}
 			fmt.Println("")
-			defer setupTargetLanguage(config)
+			setupTargetLanguage(config)
 			return
 		} else if targetLang == "" {
 			if config.Translation.SelectedService == "google" {
