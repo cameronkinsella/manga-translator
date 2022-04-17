@@ -21,13 +21,15 @@ to download the latest version.
 
 ### Option 2: `go install`
 
+**Manga Translator application:**
+
 ```sh
-# Manga Translator application
 go install github.com/cameronkinsella/manga-translator/cmd/manga-translator@latest
 ```
 
+**Config setup application:**
+
 ```sh
-# Config setup application
 go install github.com/cameronkinsella/manga-translator/cmd/manga-translator-setup@latest
 ```
 
