@@ -6,11 +6,11 @@ import (
 	"context"
 	"errors"
 	log "github.com/sirupsen/logrus"
-	"golang.design/x/clipboard"
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
+	"image"
 	"image/color"
 	_ "image/jpeg"
-	"os"
+	"image/png"
 	"strings"
 )
 
@@ -33,7 +33,7 @@ type TextBlock struct {
 var errInvalidVisionPath = errors.New(`path given for Vision API service account key is invalid. Please run the "manga-translator-setup" application to fix it`)
 
 // GetAnnotation gets text (TextAnnotation) from the Vision API for an image at the given file path.
-func GetAnnotation(file string, url, clip bool) (*pb.TextAnnotation, error) {
+func GetAnnotation(img *image.RGBA) (*pb.TextAnnotation, error) {
 	ctx := context.Background()
 
 	client, err := vision.NewImageAnnotatorClient(ctx)
@@ -46,32 +46,11 @@ func GetAnnotation(file string, url, clip bool) (*pb.TextAnnotation, error) {
 		return nil, err
 	}
 
-	var visionImg *pb.Image
-	if clip {
-		imgByte := clipboard.Read(clipboard.FmtImage)
-		if imgByte == nil {
-			log.Fatal("Image not found in clipboard")
-		}
-
-		visionImg, err = vision.NewImageFromReader(bytes.NewReader(imgByte))
-		if err != nil {
-			log.Errorf("NewImageFromReader: %v", err)
-			return nil, err
-		}
-	} else if url {
-		visionImg = vision.NewImageFromURI(file)
-	} else {
-		f, err := os.Open(file)
-		if err != nil {
-			log.Errorf("Open image: %v", err)
-			return nil, err
-		}
-		defer f.Close()
-		visionImg, err = vision.NewImageFromReader(f)
-		if err != nil {
-			log.Errorf("NewImageFromReader: %v", err)
-			return nil, err
-		}
+	reader := ReaderFromImage(img)
+	visionImg, err := vision.NewImageFromReader(reader)
+	if err != nil {
+		log.Errorf("NewImageFromReader: %v", err)
+		return nil, err
 	}
 
 	annotation, err := client.DetectDocumentText(ctx, visionImg, &pb.ImageContext{LanguageHints: []string{"ja"}})
@@ -115,4 +94,19 @@ func OrganizeAnnotation(annotation *pb.TextAnnotation) []TextBlock {
 		}
 	}
 	return blockList
+}
+
+func ReaderFromImage(img *image.RGBA) *bytes.Reader {
+	// Create buffer.
+	buff := new(bytes.Buffer)
+
+	// Encode image to buffer.
+	err := png.Encode(buff, img)
+	if err != nil {
+		log.Fatalf("Failed to create buffer: %v", err)
+	}
+
+	// Convert buffer to reader.
+	reader := bytes.NewReader(buff.Bytes())
+	return reader
 }

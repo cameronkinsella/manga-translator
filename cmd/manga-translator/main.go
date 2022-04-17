@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"flag"
 	"gioui.org/app"
 	"gioui.org/unit"
@@ -51,43 +50,29 @@ func main() {
 		log.Infof("All Selected Image(s): %v", imgPath)
 	}
 
-	var img []window.ImageInfo
+	var img []imageW.TranslatorImage
 
 	for _, imgPath := range imgPath {
 		log.Debugf("Getting image info for: %v", imgPath)
-		imgFile, imgHash := imageW.Open(imgPath, *urlImagePtr, *clipImagePtr)
-		hashInBytes := imgHash.Sum(nil)
-		imgHashStr := hex.EncodeToString(hashInBytes)
-		log.Debugf("Hash: %v", imgHashStr)
-		dims := imageW.GetDimensions(imgFile)
-		log.Debugf("Image Dimensions: %v", dims)
-
-		newImage := window.ImageInfo{
-			Image:      imgFile,
-			Path:       imgPath,
-			Hash:       imgHashStr,
-			Dimensions: dims,
-		}
+		newImage := imageW.Open(imgPath, *urlImagePtr, *clipImagePtr)
 		img = append(img, newImage)
-	}
-
-	options := window.Options{
-		Url:  *urlImagePtr,
-		Clip: *clipImagePtr,
 	}
 
 	// We need this ratio to scale the image down/up to the required starting size.
 	ratio := imageW.GetRatio(img[0].Dimensions, maxDim)
+	firstWidth := float32(img[0].Dimensions.Width)
+	firstHeight := float32(img[0].Dimensions.Height)
 
 	go func() {
 		// Create new window.
 		w := app.NewWindow(
 			app.Title("Manga Translator"),
-			app.Size(unit.Dp(ratio*img[0].Dimensions.Width), unit.Dp(ratio*img[0].Dimensions.Height)),
+
+			app.Size(unit.Dp(ratio*firstWidth), unit.Dp(ratio*firstHeight)),
 			app.MinSize(unit.Dp(600), unit.Dp(300)),
 		)
 
-		if err := window.DrawFrame(w, img, options, cfg); err != nil {
+		if err := window.DrawFrame(w, img, cfg); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)

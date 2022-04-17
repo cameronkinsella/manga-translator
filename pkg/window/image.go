@@ -21,14 +21,14 @@ import (
 
 // textBlocks indicates that status of the text detection and translation process.
 type textBlocks struct {
-	status   string // Loading status
+	status   string // Loading status.
 	loading  bool   // Is true if the process is in progress.
 	finished bool   // Is true the process is complete.
 	ok       bool   // Is true the process did not encounter any errors.
 }
 
 // getText performs text detection and translation for the given image and creates text block widgets for each of the text blocks.
-func (t *textBlocks) getText(w *app.Window, cfg *config.File, imgInfo ImageInfo, options Options, blocks *[]detect.TextBlock, blockButtons *[]widget.Clickable) {
+func (t *textBlocks) getText(w *app.Window, cfg *config.File, img imageW.TranslatorImage, blocks *[]detect.TextBlock, blockButtons *[]widget.Clickable) {
 	t.loading = true
 
 	// Signal goroutine death and update frame when finished.
@@ -47,12 +47,12 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, imgInfo ImageInfo,
 		return
 	}
 	// See if the block info and translations are already cached.
-	*blocks = cache.Check(imgInfo.Hash, cfg.Translation.SelectedService)
+	*blocks = cache.Check(img.Hash, cfg.Translation.SelectedService)
 
 	if *blocks == nil {
 		t.status = `Detecting text...`
 		// Scan image, get text annotation.
-		annotation, err := detect.GetAnnotation(imgInfo.Path, options.Url, options.Clip)
+		annotation, err := detect.GetAnnotation(img.Image)
 		if err != nil {
 			*blocks = []detect.TextBlock{}
 			t.status = err.Error()
@@ -91,7 +91,7 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, imgInfo ImageInfo,
 			(*blocks)[i].Translated = txt
 		}
 		if err == nil {
-			cache.Add(imgInfo.Hash, cfg.Translation.SelectedService, *blocks)
+			cache.Add(img.Hash, cfg.Translation.SelectedService, *blocks)
 		} else {
 			t.status = allTranslated[0]
 			return
