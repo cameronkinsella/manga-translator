@@ -10,8 +10,8 @@ require (
 	github.com/inancgumus/screen v0.0.0-20190314163918-06e984b86ed3
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/viper v1.11.0
-	golang.design/x/clipboard v0.5.3
-	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d
+	golang.design/x/clipboard v0.6.2
+	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
 	golang.org/x/text v0.3.7
 	google.golang.org/api v0.74.0
 	google.golang.org/genproto v0.0.0-20220414192740-2d67ff6cf2b4

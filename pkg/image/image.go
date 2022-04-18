@@ -38,6 +38,14 @@ func Open(file string, url, clip bool) TranslatorImage {
 	var size int
 
 	if clip {
+		var err error
+
+		// Init returns an error if the package is not ready for use.
+		err = clipboard.Init()
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		imgByte := clipboard.Read(clipboard.FmtImage)
 		if imgByte == nil {
 			log.Fatal("Image not found in clipboard")
@@ -48,7 +56,6 @@ func Open(file string, url, clip bool) TranslatorImage {
 		var buf bytes.Buffer
 		tee := io.TeeReader(bytes.NewReader(imgByte), &buf)
 
-		var err error
 		img, _, err = image.Decode(tee)
 		size = buf.Len()
 		if err != nil {

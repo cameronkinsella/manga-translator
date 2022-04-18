@@ -48,13 +48,20 @@ func main() {
 	if !*clipImagePtr {
 		imgPath = flag.Args()
 		log.Infof("All Selected Image(s): %v", imgPath)
+	} else {
+		// Need a single element in the array so that it will try to open 1 image. The path itself is not used.
+		imgPath = append(imgPath, "clipboard")
+	}
+
+	if len(imgPath) == 0 {
+		log.Fatal("No images provided.")
 	}
 
 	var img []imageW.TranslatorImage
 
-	for _, imgPath := range imgPath {
+	for _, paths := range imgPath {
 		log.Debugf("Getting image info for: %v", imgPath)
-		newImage := imageW.Open(imgPath, *urlImagePtr, *clipImagePtr)
+		newImage := imageW.Open(paths, *urlImagePtr, *clipImagePtr)
 		img = append(img, newImage)
 	}
 
