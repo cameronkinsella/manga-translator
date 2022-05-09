@@ -10,16 +10,16 @@ import (
 	"path/filepath"
 )
 
-type Data struct {
+type data struct {
 	Hash    string
 	Service string
 	Blocks  []detect.TextBlock
 }
 
 // read creates a cache if one doesn't already exist, reads the data from the cache,
-// and returns it as a slice of CacheData.
-func read() []Data {
-	var cacheData []Data
+// and returns it as a slice of cache Data.
+func read() []data {
+	var cacheData []data
 
 	cachePath := filepath.Join(config.Path(), "mtl-cache.bin")
 	cacheFile, err := os.Open(cachePath)
@@ -49,19 +49,28 @@ func read() []Data {
 	return cacheData
 }
 
-// Check returns the text blocks of the given image hash if it is in cache, otherwise returns nil.
-func Check(h string, service string) []detect.TextBlock {
+// Check returns the text blocks of the given image hash and its translation service if it is in cache, otherwise returns nil and the given service.
+func Check(h string, service string) (blocks []detect.TextBlock, translateOnly bool) {
 	cacheData := read()
 
+	var existingBlocks []detect.TextBlock
 	for _, data := range cacheData {
 		if h == data.Hash && data.Service == service {
 			log.Info("Image found in cache, skipping API requests.")
-			return data.Blocks
+			return data.Blocks, false
+		} else if h == data.Hash {
+			existingBlocks = data.Blocks
 		}
 	}
 
+	// Check if we found text blocks with the wrong service.
+	if existingBlocks != nil {
+		log.Info("Image text found in cache, performing new translation requests.")
+		return existingBlocks, true
+	}
+
 	log.Info("Image not found in cache, performing API requests.")
-	return nil
+	return nil, false
 }
 
 // Add adds a new entry to the cache.
@@ -76,7 +85,7 @@ func Add(h string, service string, blocks []detect.TextBlock) {
 	}
 	defer cacheFile.Close()
 
-	newData := Data{
+	newData := data{
 		Hash:    h,
 		Service: service,
 		Blocks:  blocks,

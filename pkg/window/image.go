@@ -15,6 +15,7 @@ import (
 	"github.com/cameronkinsella/manga-translator/pkg/detect"
 	imageW "github.com/cameronkinsella/manga-translator/pkg/image"
 	"github.com/cameronkinsella/manga-translator/pkg/translate"
+	log "github.com/sirupsen/logrus"
 	"image"
 	"math"
 )
@@ -46,27 +47,33 @@ func (t *textBlocks) getText(w *app.Window, cfg *config.File, img imageW.Transla
 		t.status = `Your config is either blank or doesn't exist, run the "manga-translator-setup" application to create one.`
 		return
 	}
+	var translateOnly bool
 	// See if the block info and translations are already cached.
-	*blocks = cache.Check(img.Hash, cfg.Translation.SelectedService)
+	*blocks, translateOnly = cache.Check(img.Hash, cfg.Translation.SelectedService)
 
-	if *blocks == nil {
-		t.status = `Detecting text...`
-		// Scan image, get text annotation.
-		annotation, err := detect.GetAnnotation(img.Image)
-		if err != nil {
-			*blocks = []detect.TextBlock{}
-			t.status = err.Error()
-			return
+	if *blocks == nil || translateOnly {
+		var err error
+		if !translateOnly {
+			t.status = `Detecting text...`
+			// Scan image, get text annotation.
+			annotation, err := detect.GetAnnotation(img.Image)
+			if err != nil {
+				*blocks = []detect.TextBlock{}
+				t.status = err.Error()
+				return
+			}
+
+			*blocks = detect.OrganizeAnnotation(annotation)
 		}
-		t.status = `Translating text...`
 		// For each text block, create a new block button and add its text to allOriginal
 		var allOriginal []string
-		*blocks = detect.OrganizeAnnotation(annotation)
 		for _, block := range *blocks {
 			*blockButtons = append(*blockButtons, widget.Clickable{})
 			allOriginal = append(allOriginal, block.Text)
 		}
 
+		t.status = `Translating text...`
+		log.Infof("Translating detected text with: %v", cfg.Translation.SelectedService)
 		// Translate the text with the service specified in the config.
 		var allTranslated []string
 		if cfg.Translation.SelectedService == "google" {
