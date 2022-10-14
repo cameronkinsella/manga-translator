@@ -118,6 +118,6 @@ If you selected multiple images, you can navigate through them using the left an
 
 [shell_img]: https://gstatic.com/cloudssh/images/open-btn.png
 
-[sa_key]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/cameronkinsella/manga-translator&open_in_editor=scripts/cloudshell/create-service-account-key.md
+[sa_key]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/cameronkinsella/manga-translator&open_in_editor=dist/cloudshell/create-service-account-key.md
 
-[api_key]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/cameronkinsella/manga-translator&open_in_editor=scripts/cloudshell/create-translation-api-key.md
+[api_key]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/cameronkinsella/manga-translator&open_in_editor=dist/cloudshell/create-translation-api-key.md
