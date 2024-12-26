@@ -61,7 +61,7 @@ func GetAnnotation(img *image.RGBA) (*pb.TextAnnotation, error) {
 
 	if annotation == nil {
 		log.Info("No text found")
-		return nil, nil
+		return nil, errors.New("no text found")
 	} else {
 		log.WithField("text", annotation.Text).Info("Detected Text")
 		return annotation, nil

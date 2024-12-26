@@ -1,6 +1,6 @@
 module github.com/cameronkinsella/manga-translator
 
-go 1.18
+go 1.23
 
 require (
 	cloud.google.com/go/translate v1.2.0
