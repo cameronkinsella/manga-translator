@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 type data struct {
@@ -15,6 +16,8 @@ type data struct {
 	Service string
 	Blocks  []detect.TextBlock
 }
+
+var mu sync.Mutex
 
 // read creates a cache if one doesn't already exist, reads the data from the cache,
 // and returns it as a slice of cache Data.
@@ -51,6 +54,9 @@ func read() []data {
 
 // Check returns the text blocks of the given image hash and its translation service if it is in cache, otherwise returns nil and the given service.
 func Check(h string, service string) (blocks []detect.TextBlock, translateOnly bool) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	cacheData := read()
 
 	var existingBlocks []detect.TextBlock
@@ -75,6 +81,9 @@ func Check(h string, service string) (blocks []detect.TextBlock, translateOnly b
 
 // Add adds a new entry to the cache.
 func Add(h string, service string, blocks []detect.TextBlock) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	log.Debugf("Adding new image to cache. sha256:%v", h)
 	cacheData := read()
 
