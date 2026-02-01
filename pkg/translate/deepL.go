@@ -3,11 +3,13 @@ package translate
 import (
 	"encoding/json"
 	"errors"
-	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type DeepLResponse struct {
@@ -38,58 +40,68 @@ func DeepLTranslate(txt []string, source, target, apiKey string) ([]string, erro
 		"targetLanguage": target,
 	}).Debug("Input languages")
 
-	var baseUrl string
+	// Determine base URL
+	baseURL := "https://api.deepl.com/v2/"
 	if strings.HasSuffix(apiKey, ":fx") {
-		baseUrl = "https://api-free.deepl.com/v2/"
-	} else {
-		baseUrl = "https://api.deepl.com/v2/"
+		baseURL = "https://api-free.deepl.com/v2/"
 	}
 
+	// Build form parameters
 	params := url.Values{}
-	for i := range txt {
-		params.Add("text", txt[i])
+	for _, t := range txt {
+		params.Add("text", t)
 	}
 	if source != "" {
 		params.Add("source_lang", source)
 	}
-	// Support configs which do not have "targetLanguage" (version <=1.2.0)
 	if target == "" {
 		target = "EN-US"
 	}
-	params.Add("auth_key", apiKey)
 	params.Add("target_lang", target)
-	reqBody := strings.NewReader(params.Encode())
+	params.Add("model_type", "quality_optimized")
 
-	resp, err := http.Post(baseUrl+"translate", "application/x-www-form-urlencoded", reqBody)
+	req, err := http.NewRequest(
+		http.MethodPost,
+		baseURL+"translate",
+		strings.NewReader(params.Encode()),
+	)
 	if err != nil {
-		log.Errorf("http.Post: %v", err)
-		return TranslationError("Translation request failed, ensure that your internet connection is stable.", txt), err
+		return TranslationError("Failed to create translation request.", txt), err
+	}
+
+	// Required headers
+	req.Header.Set("Authorization", "DeepL-Auth-Key "+apiKey)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Errorf("client.Do: %v", err)
+		return TranslationError("Translation request failed, check your internet connection.", txt), err
 	}
 	defer resp.Body.Close()
-	log.Debugf("Translation request response: %v", resp)
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Errorf("Error reading response body: %v \n", err)
-		return TranslationError("Translation request failed, ensure that your internet connection is stable and your API key is correct.", txt), err
+		log.Errorf("ReadAll: %v", err)
+		return TranslationError("Failed to read translation response.", txt), err
 	}
 
-	// Empty response body, something went wrong.
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		log.Errorf("DeepL API error (%d): %s", resp.StatusCode, string(data))
+		return TranslationError("Translation request failed, ensure your API key and languages are correct.", txt),
+			fmt.Errorf("deepl api error: %s", resp.Status)
+	}
+
 	if len(data) == 0 {
-		log.Error("Empty response body from translation request")
-		return TranslationError("Translation request failed, ensure that your API key is correct.", txt), errors.New("empty response body from translation request")
+		return TranslationError("Empty response from translation service.", txt),
+			errors.New("empty response body")
 	}
 
 	var jsonData DeepLResponse
-	if err = json.Unmarshal(data, &jsonData); err != nil {
-		log.Errorf("Parse response failed: %v", err)
-		return TranslationError("Translation request failed, ensure that your internet connection is stable and your API key is correct.", txt), err
-	}
-	log.Debugf("Translation response body: %v", jsonData)
-
-	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
-		log.Error("Non-200 status code")
-		return TranslationError("Translation request failed, ensure that your API key and source/target languages are correct.", txt), errors.New("non-200 status code")
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		log.Errorf("Unmarshal failed: %v", err)
+		return TranslationError("Failed to parse translation response.", txt), err
 	}
 
 	var translated []string
@@ -98,6 +110,5 @@ func DeepLTranslate(txt []string, source, target, apiKey string) ([]string, erro
 	}
 
 	log.WithField("text", translated).Info("Translated Text")
-
 	return translated, nil
 }
